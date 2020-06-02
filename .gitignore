@@ -1,0 +1,24 @@
+#  Local .terraform directories
+.terraform/
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .tfvars files
+*.tfvars
+
+# ignore this file
+!tfmodule-template.tf
+
+# tardigrade-ci
+tardigrade-ci/
+.tardigrade-ci
+
+# eclint
+
+.git/
+
+# test harness
+tests/go.mod
+tests/go.sum

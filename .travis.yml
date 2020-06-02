@@ -1,0 +1,41 @@
+dist: bionic
+
+language: node_js
+
+node_js:
+  - "12"
+
+stages:
+  - lint
+  - deploy
+
+jobs:
+  include:
+    - stage: lint
+      name: Project Syntax Verification
+      script: make && make docker/run target=lint
+    - stage: deploy
+      if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
+      before_script:
+        - |
+          PRIOR_VERSION=$(git describe --abbrev=0 --tags)
+          RELEASE_VERSION=$(grep current_version $TRAVIS_BUILD_DIR/.bumpversion.cfg | sed 's/^.*= //' )
+          RELEASE_BODY="* [terraform-aws-org-new-account-iam-role v$RELEASE_VERSION CHANGELOG](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/blob/$RELEASE_VERSION/CHANGELOG.md)"
+          export PRIOR_VERSION RELEASE_VERSION RELEASE_BODY
+      script: skip
+      before_deploy:
+        - |
+          (set -x; git tag -a $RELEASE_VERSION -m $RELEASE_VERSION)
+      deploy:
+        provider: releases
+        api_key:
+          secure: 4224d33b8569bec8473980bb1bdb982639426a92
+        name: $RELEASE_VERSION
+        body: $RELEASE_BODY
+        tag_name: $RELEASE_VERSION
+        target_commitish: $TRAVIS_COMMIT
+        draft: false
+        on:
+          branch: master
+          repo: plus3it/terraform-aws-org-new-account-iam-role
+          condition: '"$PRIOR_VERSION" != "$RELEASE_VERSION"'
