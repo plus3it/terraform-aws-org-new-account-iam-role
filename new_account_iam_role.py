@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
-
-'''
-Create cross-account IAM role and update trust.
+"""Create cross-account IAM role and update trust.
 
 References:
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#role
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_role
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.Client.update_role_description
+"""
 
-'''
+# pylint: disable=fixme
 
 from __future__ import (
     absolute_import,
@@ -69,38 +68,35 @@ class AccountCreationFailedException(Exception):
     """Account creation failed."""
 
 
-class AssumeRoleProvider(object):
+class AssumeRoleProvider:  # pylint: disable=too-few-public-methods
     """Provide refreshable credentials for assumed role."""
 
     METHOD = "assume-role"
 
     def __init__(self, fetcher):
+        """Initialize class variables."""
         self._fetcher = fetcher
 
     def load(self):
-        """
-        Provide refreshable credentials for assumed role.
-        """
+        """Provide refreshable credentials for assumed role."""
         return botocore.credentials.DeferredRefreshableCredentials(
             self._fetcher.fetch_credentials, self.METHOD
         )
 
 
 def filter_none_values(data):
-    """
-    Return a new dictionary excluding items where value was None.
-    """
+    """Return a new dictionary excluding items where value was None."""
     return {k: v for k, v in data.items() if v is not None}
 
 
 def assume_role(
-        session,
-        role_arn,
-        duration=3600,
-        session_name=None,
-        serial_number=None,
-        cache_dir=None,
-):
+    session,
+    role_arn,
+    duration=3600,
+    session_name=None,
+    serial_number=None,
+    cache_dir=None,
+):  # pylint: disable=too-many-arguments
     """Assume a role with refreshable credentials."""
     cache_dir = cache_dir or botocore.credentials.JSONFileCache.CACHE_DIR
 
@@ -143,12 +139,9 @@ def get_new_account_id(event):
         if state == "SUCCEEDED":
             return account_status["CreateAccountStatus"]["AccountId"]
         if state == "FAILED":
-            LOG.error("Account creation failed:\n%s", json.dumps(
-                account_status))
+            LOG.error("Account creation failed:\n%s", json.dumps(account_status))
             raise AccountCreationFailedException
-        LOG.info(
-            "Account state: %s. Sleeping 5 seconds and will try again...",
-            state)
+        LOG.info("Account state: %s. Sleeping 5 seconds and will try again...", state)
         time.sleep(5)
 
 
@@ -177,28 +170,29 @@ def get_caller_identity(sts=None):
 
 
 def iam_update_role_description(session, role_name, description=None):
-    """Uses IAM client instead of resource to update the description"""
-    iam = session.client('iam')
+    """Use IAM client instead of resource to update the description."""
+    iam = session.client("iam")
     if not description:
-        description = 'This role was updated {when} by {whom}'.format(
-            when=datetime.datetime.now(),
-            whom=os.path.basename(__file__)
+        description = "This role was updated {when} by {whom}".format(
+            when=datetime.datetime.now(), whom=os.path.basename(__file__)
         )
     iam.update_role_description(RoleName=role_name, Description=description)
 
 
 def is_json(myjson):
-    """https://stackoverflow.com/a/20725965/2275266"""
+    """Return True if JSON is valid, else False.
+
+    https://stackoverflow.com/a/20725965/2275266
+    """
     try:
-        json_object = json.loads(myjson)
-    except ValueError as err:
+        json.loads(myjson)
+    except ValueError:
         return False
     return True
 
 
 def create_assume_policy_doc(policy_item):
-    """ Creates the json policy_document from list of account ids
-    """
+    """Create the json policy_document from list of account ids."""
     __function = create_assume_policy_doc.__name__
     policy_document = None
 
@@ -208,17 +202,17 @@ def create_assume_policy_doc(policy_item):
         # To do: add validation
         trust_acct_statements = list()
         for acct_id in policy_item:
-            trust_acct_statements.append({
-                "Sid": "",
-                "Effect": "Allow",
-                "Principal": {
-                    "AWS": "arn:aws:iam::{}:root".format(acct_id)
-                },
-                "Action": "sts:AssumeRole"
-            })
+            trust_acct_statements.append(
+                {
+                    "Sid": "",
+                    "Effect": "Allow",
+                    "Principal": {"AWS": "arn:aws:iam::{}:root".format(acct_id)},
+                    "Action": "sts:AssumeRole",
+                }
+            )
         dict_doc = dict()
-        dict_doc['Version'] = '2012-10-17'
-        dict_doc['Statement'] = trust_acct_statements
+        dict_doc["Version"] = "2012-10-17"
+        dict_doc["Statement"] = trust_acct_statements
         policy_document = json.dumps(dict_doc)
     elif is_json(policy_item):
         LOG.debug("%s: JSON input detected...", __function)
@@ -228,13 +222,9 @@ def create_assume_policy_doc(policy_item):
     return policy_document
 
 
-def iam_role_update_trust(session,
-                          role_name=None,
-                          action='add',
-                          account_ids=None):
-    """
-    Description:
-      Create or Update the 'role_name' from a list of IDs.
+def iam_role_update_trust(session, role_name=None, action="add", account_ids=None):
+    """Create or Update the 'role_name' from a list of IDs.
+
     Arguments:
       'session':     BOTO3 Session Resource
       'role_name':   (str) name of role to be created or updated
@@ -245,33 +235,35 @@ def iam_role_update_trust(session,
       'account_ids': (array) 12 digit AWS IDs to action against the role_name
     """
     if (not account_ids) or (not action) or (not role_name):
-        LOG.error(
-            "account_ids, action [add|remove|force], and role_name  required!")
+        LOG.error("account_ids, action [add|remove|force], and role_name  required!")
         sys.exit(1)
     assert action in [
-        'add', 'remove', 'force'], 'Action must be "add", "remove", "force"'
+        "add",
+        "remove",
+        "force",
+    ], 'Action must be "add", "remove", "force"'
 
     # Establish IAM Resource
-    iam = session.resource('iam')
+    iam = session.resource("iam")
 
     # Get Current Role Policy Account IDs
     allowed_ids = list()
     try:
         role = iam.Role(name=role_name)
-        role_assume_pol_docs = role.assume_role_policy_document['Statement']
+        role_assume_pol_docs = role.assume_role_policy_document["Statement"]
         for stmnt in role_assume_pol_docs:
-            if stmnt['Effect'] == 'Allow' and stmnt['Principal']['AWS']:
-                allowed_ids.append(stmnt['Principal']['AWS'].split(':')[4])
+            if stmnt["Effect"] == "Allow" and stmnt["Principal"]["AWS"]:
+                allowed_ids.append(stmnt["Principal"]["AWS"].split(":")[4])
         allowed_ids.sort()
     except iam.meta.client.exceptions.NoSuchEntityException as exc:
         LOG.debug("Role does not exist yet. Ignoring error: %s", exc)
         role = None
     # create new list of desired Account IDs
-    if action == 'add':
+    if action == "add":
         new_allowed_ids = account_ids + list(set(allowed_ids) - set(account_ids))
-    if action == 'remove':
+    if action == "remove":
         new_allowed_ids = list(set(allowed_ids) - set(account_ids))
-    if action == 'force':
+    if action == "force":
         new_allowed_ids = account_ids
     new_allowed_ids.sort()
 
@@ -292,8 +284,8 @@ def iam_role_update_trust(session,
         else:
             LOG.debug("%s: Creating New Role", role_name)
             role = iam.create_role(
-                RoleName=role_name,
-                AssumeRolePolicyDocument=assume_role_policy_doc)
+                RoleName=role_name, AssumeRolePolicyDocument=assume_role_policy_doc
+            )
             iam_update_role_description(session, role_name)
             role = role.reload()
     except iam.meta.client.exceptions.Malformedpolicy_documentumentException as exc:
@@ -302,33 +294,31 @@ def iam_role_update_trust(session,
     return (role, new_allowed_ids)
 
 
-def iam_role_update_policy(session, role=None, action='add', policy_arn=None):
-    """Updates the Role by adding or removing a Permission Policy"""
+def iam_role_update_policy(session, role=None, action="add", policy_arn=None):
+    """Update the Role by adding or removing a Permission Policy."""
     if (not policy_arn) or (not action) or (not role):
         LOG.error("policy_arn, action [add|remove], and role are required!")
         sys.exit(1)
-    assert action in ['add', 'remove'], "Action must be 'add' or 'remove'"
+    assert action in ["add", "remove"], "Action must be 'add' or 'remove'"
     # Establish IAM Resource
-    iam = session.resource('iam')
+    iam = session.resource("iam")
 
     if isinstance(role, str):
         role = iam.Role(name=role)
 
     role_name = role.name
 
-    attached_policies = role.attached_policies.all()
-
     # Get Current Role Policy Account IDs
     attached_policy_arns = [a.arn for a in role.attached_policies.all()]
 
     # Update the attached Policies
-    if (action == 'add') and (policy_arn not in attached_policy_arns):
+    if action == "add" and policy_arn not in attached_policy_arns:
         LOG.debug("%s: Updating Existing Role", role_name)
-        response = role.attach_policy(PolicyArn=policy_arn)
+        # TODO -> response = role.attach_policy(PolicyArn=policy_arn)
         iam_update_role_description(session, role_name)
-    elif (action == 'remove') and (policy_arn in attached_policy_arns):
+    elif action == "remove" and policy_arn in attached_policy_arns:
         LOG.debug("%s: Updating Existing Role", role_name)
-        response = role.detach_policy(PolicyArn=policy_arn)
+        # TODO -> response = role.detach_policy(PolicyArn=policy_arn)
         iam_update_role_description(session, role_name)
     else:
         LOG.debug("%s: Nothing to do, policy exists.", role_name)
@@ -343,17 +333,17 @@ def get_partition():
 
 
 def main(
-        aws_profile,
-        role_name,
-        role_permission_policy,
-        role_permission_action,
-        role_trust_action,
-        role_trust_policy,
-        assume_role_arn=None,
-        botocore_cache_dir=BOTOCORE_CACHE_DIR,
-        log_level=None,
-):
-    """Create or update a role"""
+    aws_profile,
+    role_name,
+    role_permission_policy,
+    role_permission_action,
+    role_trust_action,
+    role_trust_policy,
+    assume_role_arn=None,
+    botocore_cache_dir=BOTOCORE_CACHE_DIR,
+    log_level=None,
+):  # pylint: disable=too-many-arguments
+    """Create or update a role."""
     LOG.setLevel(level=getattr(logging, log_level.upper()))
     if assume_role_arn:
         # Create a session with an assumed role in the new account
@@ -373,43 +363,49 @@ def main(
     # Update trusts associated with the role
     # Role will be created if it does not exist
     if isinstance(role_trust_policy, str):
-        assume_role_ids = role_trust_policy.split(':')
+        assume_role_ids = role_trust_policy.split(":")
     LOG.info("Targeted Role: %s", role_name)
-    LOG.debug("%s: Modifying trust [%s] of AWS Account IDs: %s",
-              role_name, role_trust_action, assume_role_ids)
+    LOG.debug(
+        "%s: Modifying trust [%s] of AWS Account IDs: %s",
+        role_name,
+        role_trust_action,
+        assume_role_ids,
+    )
     role, all_trusts = iam_role_update_trust(
-        boto, role_name, role_trust_action, assume_role_ids)
+        boto, role_name, role_trust_action, assume_role_ids
+    )
 
     # Update permissions policies associated with the role
-    policy_arn = 'arn:aws:iam::{policyOwnerID}:policy/{policyName}'.format(
-        policyOwnerID='aws', policyName=role_permission_policy)
+    policy_arn = "arn:aws:iam::{policyOwnerID}:policy/{policyName}".format(
+        policyOwnerID="aws", policyName=role_permission_policy
+    )
     role, all_policies = iam_role_update_policy(
-        boto, role_name, role_permission_action, policy_arn)
-    LOG.debug("Role Arn: %s\n\ttrusts: %s\n\tPolicies: %s", role.arn,
-              all_trusts, all_policies)
+        boto, role_name, role_permission_action, policy_arn
+    )
+    LOG.debug(
+        "Role Arn: %s\n\ttrusts: %s\n\tPolicies: %s", role.arn, all_trusts, all_policies
+    )
     return role.arn
 
 
-def lambda_handler(event, context):
-    """
-    Entry point if script called by AWS LAMBDA
-    """
+def lambda_handler(event, context):  # pylint: disable=unused-argument
+    """Entry point if script called by AWS LAMBDA."""
     try:
         LOG.info("Received event:\n%s", json.dumps(event))
 
         # Get vars required to update the role
         account_id = get_account_id(event)
         partition = get_partition()
-        assume_role_name = os.environ.get('ASSUME_ROLE_NAME')
-        update_role_name = os.environ.get('UPDATE_ROLE_NAME')
+        assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
+        update_role_name = os.environ.get("UPDATE_ROLE_NAME")
         role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
         # name of AWS Permission Policy such as 'ReadOnlyAccess' to de/attach
-        permission_action = os.environ.get('PERMISSION_POLICY')
-        permission_policy = os.environ.get('PERMISSION_ACTION', 'add')
+        # TODO -> permission_action = os.environ.get("PERMISSION_POLICY")
+        permission_policy = os.environ.get("PERMISSION_ACTION", "add")
         # JSON string representing the Assume Role trust policy doc to apply to
         # the role being updated OR a colon ':' delimited list of Account IDs
-        trust_policy = os.environ.get('TRUST_POLICY')
-        trust_policy = os.environ.get('TRUST_ACTION', 'add')
+        trust_policy = os.environ.get("TRUST_POLICY")
+        trust_policy = os.environ.get("TRUST_ACTION", "add")
 
         # In lambda, override the default boto cache dir because only `/tmp/`
         # is writable
@@ -421,9 +417,9 @@ def lambda_handler(event, context):
             aws_profile=None,
             botocore_cache_dir=botocore_cache_dir,
             role_name=update_role_name,
-            role_permission_action='add',
+            role_permission_action="add",
             role_permission_policy=permission_policy,
-            role_trust_action='add',
+            role_trust_action="add",
             role_trust_policy=trust_policy,
         )
     except Exception as exc:
@@ -452,8 +448,8 @@ if __name__ == "__main__":
     PARSER.add_argument(
         "--role-permission-action",
         type=str,
-        choices=['add', 'remove'],
-        default='add',
+        choices=["add", "remove"],
+        default="add",
         help="Takes action on trust-policy-name: + or - from defined role",
     )
     PARSER.add_argument(
@@ -465,8 +461,8 @@ if __name__ == "__main__":
     PARSER.add_argument(
         "--role-trust-action",
         type=str,
-        choices=['add', 'remove', 'force'],
-        default='add',
+        choices=["add", "remove", "force"],
+        default="add",
         help="Takes action on trust-acct-ids: +, -, or == the defined IDs",
     )
     PARSER.add_argument(
@@ -479,7 +475,7 @@ if __name__ == "__main__":
         "--log-level",
         type=str.upper,
         choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
-        default='info',
+        default="info",
         help="Set the logging level",
     )
     ARGS = PARSER.parse_args()
