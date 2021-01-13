@@ -15,10 +15,6 @@
 tardigrade-ci/
 .tardigrade-ci
 
-# eclint
-
-.git/
-
 # test harness
 tests/go.mod
 tests/go.sum
@@ -26,4 +22,3 @@ tests/go.sum
 # TF AWS resounce handler
 aws/
 awscliv2.zip
-
