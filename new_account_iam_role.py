@@ -6,62 +6,34 @@ https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.h
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.ServiceResource.create_role
 https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/iam.html#IAM.Client.update_role_description
 """
-
 # pylint: disable=fixme
-
-from __future__ import (
-    absolute_import,
-    division,
-    generator_stop,
-    generators,
-    nested_scopes,
-    print_function,
-    unicode_literals,
-    with_statement,
-)
-
-import argparse
-import collections
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import datetime
 import json
-import logging
 import os
 import sys
 import time
 
+from aws_lambda_powertools import Logger
 import boto3
 import botocore
 
 # Allow user to override the boto cache dir using the env `BOTOCORE_CACHE_DIR`
-# References:
-#   * <https://github.com/mixja/boto3-session-cache>
+# Reference:  <https://github.com/mixja/boto3-session-cache>
 BOTOCORE_CACHE_DIR = os.environ.get("BOTOCORE_CACHE_DIR")
 
-DEFAULT_LOG_LEVEL = logging.INFO
-LOG_LEVELS = collections.defaultdict(
-    lambda: DEFAULT_LOG_LEVEL,
-    {
-        "critical": logging.CRITICAL,
-        "error": logging.ERROR,
-        "warning": logging.WARNING,
-        "info": logging.INFO,
-        "debug": logging.DEBUG,
-    },
-)
+boto3.set_stream_logger()
+boto3.set_stream_logger("botocore")
 
-# Lambda initializes a root logger that needs to be removed
-# in order to set a different logging config
-ROOT = logging.getLogger()
-if ROOT.handlers:
-    for handler in ROOT.handlers:
-        ROOT.removeHandler(handler)
-
-logging.basicConfig(
-    format="%(asctime)s.%(msecs)03dZ [%(name)s][%(levelname)-5s]: %(message)s",
+LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
+LOG = Logger(
+    service="new_account_iam_role",
+    level=LOG_LEVEL,
+    stream=sys.stderr,
+    location="%(name)s.%(funcName)s:%(lineno)d",
+    timestamp="%(asctime)s.%(msecs)03dZ",
     datefmt="%Y-%m-%dT%H:%M:%S",
-    level=LOG_LEVELS[os.environ.get("LOG_LEVEL", "").lower()],
 )
-LOG = logging.getLogger(__name__)
 
 
 class AccountCreationFailedException(Exception):
@@ -158,15 +130,7 @@ def get_account_id(event):
         "CreateGovCloudAccount": get_new_account_id,
         "InviteAccountToOrganization": get_invite_account_id,
     }
-
     return get_account_id_strategy[event_name](event)
-
-
-def get_caller_identity(sts=None):
-    """Return caller identity from STS."""
-    if not sts:
-        sts = boto3.client("sts")
-    return sts.get_caller_identity()
 
 
 def iam_update_role_description(session, role_name, description=None):
@@ -234,15 +198,6 @@ def iam_role_update_trust(session, role_name=None, action="add", account_ids=Non
           force:     Ensure array account_ids is the only ones assume the role
       'account_ids': (array) 12 digit AWS IDs to action against the role_name
     """
-    if (not account_ids) or (not action) or (not role_name):
-        LOG.error("account_ids, action [add|remove|force], and role_name  required!")
-        sys.exit(1)
-    assert action in [
-        "add",
-        "remove",
-        "force",
-    ], 'Action must be "add", "remove", "force"'
-
     # Establish IAM Resource
     iam = session.resource("iam")
 
@@ -296,10 +251,6 @@ def iam_role_update_trust(session, role_name=None, action="add", account_ids=Non
 
 def iam_role_update_policy(session, role=None, action="add", policy_arn=None):
     """Update the Role by adding or removing a Permission Policy."""
-    if (not policy_arn) or (not action) or (not role):
-        LOG.error("policy_arn, action [add|remove], and role are required!")
-        sys.exit(1)
-    assert action in ["add", "remove"], "Action must be 'add' or 'remove'"
     # Establish IAM Resource
     iam = session.resource("iam")
 
@@ -327,6 +278,13 @@ def iam_role_update_policy(session, role=None, action="add", policy_arn=None):
     return (role, [a.arn for a in role.attached_policies.all()])
 
 
+def get_caller_identity(sts=None):
+    """Return caller identity from STS."""
+    if not sts:
+        sts = boto3.client("sts")
+    return sts.get_caller_identity()
+
+
 def get_partition():
     """Return AWS partition."""
     return get_caller_identity()["Arn"].split(":")[1]
@@ -341,10 +299,8 @@ def main(
     role_trust_policy,
     assume_role_arn=None,
     botocore_cache_dir=BOTOCORE_CACHE_DIR,
-    log_level=None,
 ):  # pylint: disable=too-many-arguments
     """Create or update a role."""
-    LOG.setLevel(level=getattr(logging, log_level.upper()))
     if assume_role_arn:
         # Create a session with an assumed role in the new account
         LOG.info("Establishing Session by Assuming role: %s", assume_role_arn)
@@ -357,13 +313,17 @@ def main(
         LOG.info("Establishing Session using profile: %s", aws_profile)
         boto = boto3.Session(profile_name=aws_profile)
     else:
-        LOG.error("One of '--assume-role-arn' or '--aws-profile' is required")
-        sys.exit(1)
+        raise Exception("One of '--assume-role-arn' or '--aws-profile' is required")
 
     # Update trusts associated with the role
     # Role will be created if it does not exist
     if isinstance(role_trust_policy, str):
         assume_role_ids = role_trust_policy.split(":")
+
+    # TODO:  Why would it not be a string and what is the above doing?
+    if not assume_role_ids:
+        raise Exception(f"Role trust policy ({role_trust_policy}) not a string?")
+
     LOG.info("Targeted Role: %s", role_name)
     LOG.debug(
         "%s: Modifying trust [%s] of AWS Account IDs: %s",
@@ -371,6 +331,7 @@ def main(
         role_trust_action,
         assume_role_ids,
     )
+
     role, all_trusts = iam_role_update_trust(
         boto, role_name, role_trust_action, assume_role_ids
     )
@@ -390,93 +351,134 @@ def main(
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
     """Entry point if script called by AWS LAMBDA."""
-    try:
-        LOG.info("Received event:\n%s", json.dumps(event))
+    LOG.info("Received event:\n%s", json.dumps(event))
 
-        # Get vars required to update the role
+    # For the CLI entrypoint (main), argparse will ensure that required
+    # arguments are provided and will restrict arguments to specific values
+    # as necessary.  The Lambda entrypoint uses environment variables
+    # to supply "arguments" and those checks must be performed here.
+
+    # Optional:  Used to create assume-role-arn.
+    assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
+
+    # Required:  Used for role-name.
+    update_role_name = os.environ.get("UPDATE_ROLE_NAME")
+
+    # Optional: role-permission-action.  Possible values:  add, remove.
+    permission_action = os.environ.get("PERMISSION_ACTION", "add")
+
+    # Required:  role-permission-policy.  Name of AWS Permission Policy
+    # such as 'ReadOnlyAccess' to de/attach.
+    permission_policy = os.environ.get("PERMISSION_POLICY")
+
+    # Optional:  role-trust-action.  Possible values:  add, remove, force.
+    trust_action = os.environ.get("TRUST_ACTION", "add")
+
+    ## Required:  role-trust-policy.  JSON string representing the Assume
+    # Role trust policy doc to apply to the role being updated OR a colon
+    # ':' delimited list of Account IDs.
+    trust_policy = os.environ.get("TRUST_POLICY")
+
+    if not update_role_name:
+        LOG.critical(
+            "Environment variable 'UPDATE_ROLE_NAME' must provide "
+            "the name of the IAM role to create."
+        )
+    if not permission_policy:
+        LOG.critical(
+            "Environment variable 'PERMISSION_POLICY' must provide "
+            "the list of AWS managed permission policies to action."
+        )
+    if not trust_policy:
+        LOG.critical(
+            "Environment variable 'TRUST_POLICY' must provide JSON "
+            "or delimited [:] list of Account IDs to modify role trust."
+        )
+    elif permission_action not in ["add", "remove"]:
+        LOG.critical(
+            "Environment variable 'PERMISSION_ACTION' is not 'add' or " "'remove'."
+        )
+    elif trust_action not in ["add", "remove", "force"]:
+        LOG.critical(
+            "Environment variable 'TRUST_ACTION' is not 'add', 'remove' or " "'force'."
+        )
+
+    # Override the default boto cache dir because only `/tmp/` is writable.
+    botocore_cache_dir = BOTOCORE_CACHE_DIR or "/tmp/.aws/boto/cache"
+
+    try:
         account_id = get_account_id(event)
         partition = get_partition()
-        assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
-        update_role_name = os.environ.get("UPDATE_ROLE_NAME")
         role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
-        # name of AWS Permission Policy such as 'ReadOnlyAccess' to de/attach
-        # TODO -> permission_action = os.environ.get("PERMISSION_POLICY")
-        permission_policy = os.environ.get("PERMISSION_ACTION", "add")
-        # JSON string representing the Assume Role trust policy doc to apply to
-        # the role being updated OR a colon ':' delimited list of Account IDs
-        trust_policy = os.environ.get("TRUST_POLICY")
-        trust_policy = os.environ.get("TRUST_ACTION", "add")
 
-        # In lambda, override the default boto cache dir because only `/tmp/`
-        # is writable
-        botocore_cache_dir = BOTOCORE_CACHE_DIR or "/tmp/.aws/boto/cache"
-
-        # Assume the role and update the role trust policy
         main(
             assume_role_arn=role_arn,
             aws_profile=None,
             botocore_cache_dir=botocore_cache_dir,
             role_name=update_role_name,
-            role_permission_action="add",
+            role_permission_action=permission_action,
             role_permission_policy=permission_policy,
-            role_trust_action="add",
+            role_trust_action=trust_action,
             role_trust_policy=trust_policy,
         )
     except Exception as exc:
-        LOG.critical("Caught error: %s", exc, exc_info=exc)
+        LOG.exception("Caught error: %s", exc, exc_info=exc)
         raise
 
 
 if __name__ == "__main__":
-    PARSER = argparse.ArgumentParser(
-        description="Create role and establish trust based on existing policy."
-    )
-    PARSER.add_argument(
-        "--aws-profile",
-        help="Credentials profile for IAM user used to establish a session",
-    )
-    PARSER.add_argument(
-        "--assume-role-arn",
-        help="ARN of IAM role to assume the target account (case sensitive)",
-    )
-    PARSER.add_argument(
-        "--role-name",
-        required=True,
-        type=str,
-        help="Name of the IAM role to create",
-    )
-    PARSER.add_argument(
-        "--role-permission-action",
-        type=str,
-        choices=["add", "remove"],
-        default="add",
-        help="Takes action on trust-policy-name: + or - from defined role",
-    )
-    PARSER.add_argument(
-        "--role-permission-policy",
-        required=True,
-        type=str,
-        help="delimited [:] list of AWS managed permission policies to action",
-    )
-    PARSER.add_argument(
-        "--role-trust-action",
-        type=str,
-        choices=["add", "remove", "force"],
-        default="add",
-        help="Takes action on trust-acct-ids: +, -, or == the defined IDs",
-    )
-    PARSER.add_argument(
-        "--role-trust-policy",
-        required=True,
-        type=str,
-        help="JSON or delimited [:] list of Account IDs to modify role trust",
-    )
-    PARSER.add_argument(
-        "--log-level",
-        type=str.upper,
-        choices=["CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG"],
-        default="info",
-        help="Set the logging level",
-    )
-    ARGS = PARSER.parse_args()
-    sys.exit(main(**vars(ARGS)))
+
+    def create_args():
+        """Return parsed arguments."""
+        parser = ArgumentParser(
+            formatter_class=RawDescriptionHelpFormatter,
+            description="""
+Create role and establish trust based on existing policy.
+
+NOTE:  Use the environment variable 'LOG_LEVEL' to set the desired log level
+('error', 'warning', 'info' or 'debug').  The default level is 'info'.""",
+        )
+        required_args = parser.add_argument_group("required named arguments")
+        parser.add_argument(
+            "--aws-profile",
+            help="Credentials profile for IAM user used to establish a session",
+        )
+        parser.add_argument(
+            "--assume-role-arn",
+            help="ARN of IAM role to assume the target account (case sensitive)",
+        )
+        required_args.add_argument(
+            "--role-name",
+            required=True,
+            type=str,
+            help="Name of the IAM role to create",
+        )
+        parser.add_argument(
+            "--role-permission-action",
+            type=str,
+            choices=["add", "remove"],
+            default="add",
+            help="Takes action on trust-policy-name: + or - from defined role",
+        )
+        required_args.add_argument(
+            "--role-permission-policy",
+            required=True,
+            type=str,
+            help="delimited [:] list of AWS managed permission policies to action",
+        )
+        parser.add_argument(
+            "--role-trust-action",
+            type=str,
+            choices=["add", "remove", "force"],
+            default="add",
+            help="Takes action on trust-acct-ids: +, -, or == the defined IDs",
+        )
+        required_args.add_argument(
+            "--role-trust-policy",
+            required=True,
+            type=str,
+            help="JSON or delimited [:] list of Account IDs to modify role trust",
+        )
+        return parser.parse_args()
+
+    sys.exit(main(**vars(create_args())))
