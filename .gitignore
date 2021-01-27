@@ -15,10 +15,6 @@
 tardigrade-ci/
 .tardigrade-ci
 
-# test harness
-tests/go.mod
-tests/go.sum
-
 # TF AWS resounce handler
 aws/
 awscliv2.zip
