@@ -22,7 +22,7 @@ module "lambda" {
   function_name = local.name
   description   = "Create new IAM Account Role"
   handler       = "new_account_iam_role.lambda_handler"
-  runtime       = "python3.6"
+  runtime       = "python3.9"
   source_path   = "${path.module}/new_account_iam_role.py"
   timeout       = 300
 
@@ -30,10 +30,8 @@ module "lambda" {
     variables = {
       ASSUME_ROLE_NAME  = var.assume_role_arn
       UPDATE_ROLE_NAME  = var.role_name
-      PERMISSION_ACTION = var.role_permission_policy
-      PERMISSION_POLICY = var.role_permission_action
-      TRUST_POLICY      = var.role_trust_policy
-      TRUST_ACTION      = var.role_trust_action
+      PERMISSION_POLICY = var.role_permission_policy
+      TRUST_POLICY_JSON = var.trust_policy_json
       LOG_LEVEL         = var.log_level
     }
   }

@@ -10,18 +10,8 @@ variable "role_permission_policy" {
   description = "colon [:] delimited list of permission policy names to action"
   type        = string
 }
-variable "role_permission_action" {
-  description = "['add' or 'remove'] role_permission_policy from role_name"
-  default     = "add"
-  type        = string
-}
-variable "role_trust_policy" {
-  description = "colon [:] delimited AWS account IDs to action, or JSON policyDoc"
-  type        = string
-}
-variable "role_trust_action" {
-  description = "['add', 'remove', 'force'] role_trust_policy account IDs from role_name"
-  default     = "add"
+variable "trust_policy_json" {
+  description = "JSON-formatted string containing the role trust policy"
   type        = string
 }
 variable "log_level" {
