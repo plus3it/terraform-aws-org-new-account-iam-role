@@ -31,7 +31,7 @@ module "lambda" {
       ASSUME_ROLE_NAME  = var.assume_role_arn
       ROLE_NAME         = var.role_name
       PERMISSION_POLICY = var.role_permission_policy
-      TRUST_POLICY_JSON = var.trust_policy_json
+      TRUST_POLICY      = var.trust_policy
       LOG_LEVEL         = var.log_level
     }
   }
