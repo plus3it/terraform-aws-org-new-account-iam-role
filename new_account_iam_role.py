@@ -251,7 +251,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
     # Required:  Used for role-name, e.g., E_READONLY or E_PROVADMIN or
     # E_PROVREADONLY.
-    update_role_name = os.environ.get("UPDATE_ROLE_NAME")
+    role_name = os.environ.get("ROLE_NAME")
 
     # Required:  role-permission-policy.  Name of AWS Permission Policy
     # such as 'ReadOnlyAccess' to de/attach.
@@ -260,9 +260,9 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     # Required:  trust-policy-json.  JSON-formatted string with trust policy.
     trust_policy_json = os.environ.get("TRUST_POLICY_JSON")
 
-    if not update_role_name:
+    if not role_name:
         LOG.critical(
-            "Environment variable 'UPDATE_ROLE_NAME' must provide "
+            "Environment variable 'ROLE_NAME' must provide "
             "the name of the IAM role to create."
         )
     if not permission_policy:
@@ -286,7 +286,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
         main(
             aws_profile=None,
-            role_name=update_role_name,
+            role_name=role_name,
             role_permission_policy=permission_policy,
             trust_policy_json=trust_policy_json,
             assume_role_arn=role_arn,
