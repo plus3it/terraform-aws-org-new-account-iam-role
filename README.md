@@ -24,7 +24,7 @@ TBD
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| assume\_role\_arn | ARN of IAM role to assume the target account (case sensitive) | `string` | n/a | yes |
+| assume\_role\_name | Name of IAM role to assume the target account (case sensitive) | `string` | n/a | yes |
 | role\_name | Name of the IAM role to create in the target account (case sensitive) | `string` | n/a | yes |
 | role\_permission\_policy | colon [:] delimited list of permission policy names to action | `string` | n/a | yes |
 | trust\_policy | JSON-formatted string containing the role trust policy | `string` | n/a | yes |

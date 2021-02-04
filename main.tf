@@ -3,10 +3,6 @@ terraform {
   required_version = ">= 0.12"
 }
 
-provider "aws" {
-  region = var.aws_region
-}
-
 locals {
   name = "new_account_iam_role_${random_string.id.result}"
 }
@@ -22,13 +18,13 @@ module "lambda" {
   function_name = local.name
   description   = "Create new IAM Account Role"
   handler       = "new_account_iam_role.lambda_handler"
-  runtime       = "python3.9"
+  runtime       = "python3.8"
   source_path   = "${path.module}/new_account_iam_role.py"
   timeout       = 300
 
   environment = {
     variables = {
-      ASSUME_ROLE_NAME  = var.assume_role_arn
+      ASSUME_ROLE_NAME  = var.assume_role_name
       ROLE_NAME         = var.role_name
       PERMISSION_POLICY = var.role_permission_policy
       TRUST_POLICY      = var.trust_policy

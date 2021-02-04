@@ -1,5 +1,5 @@
-variable "assume_role_arn" {
-  description = "ARN of IAM role to assume the target account (case sensitive)"
+variable "assume_role_name" {
+  description = "Name of IAM role to assume the target account (case sensitive)"
   type        = string
 }
 variable "role_name" {
