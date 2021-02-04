@@ -1,5 +1,6 @@
 #  Local .terraform directories
 .terraform/
+.terraform.lock.hcl
 
 # .tfstate files
 *.tfstate
@@ -14,6 +15,9 @@
 # tardigrade-ci
 tardigrade-ci/
 .tardigrade-ci
+
+# terratest packaging
+tests/go.*
 
 # TF AWS resounce handler
 aws/
