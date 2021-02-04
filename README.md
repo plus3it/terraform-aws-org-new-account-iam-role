@@ -29,7 +29,7 @@ TBD
 | role\_name | Name of the IAM role to create | `string` | n/a | yes |
 | role\_permission\_policy | colon [:] delimited list of permission policy names to action | `string` | n/a | yes |
 | trust\_policy\_json | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
-| log\_level | Log level of the lambda output, one of: Debug, Info, Warning, Error, Critical | `string` | `"Info"` | no |
+| log\_level | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"Info"` | no |
 
 ## Outputs
 

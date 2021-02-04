@@ -16,7 +16,7 @@ variable "trust_policy_json" {
 }
 variable "log_level" {
   default     = "Info"
-  description = "Log level of the lambda output, one of: Debug, Info, Warning, Error, Critical"
+  description = "Log level of the lambda output, one of: debug, info, warning, error, critical"
   type        = string
 }
 variable "aws_region" {
