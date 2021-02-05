@@ -19,7 +19,7 @@ module "lambda" {
   description   = "Create new IAM Account Role"
   handler       = "new_account_iam_role.lambda_handler"
   runtime       = "python3.8"
-  source_path   = "${path.module}/new_account_iam_role.py"
+  source_path   = "${path.module}/src"
   timeout       = 300
 
   environment = {
