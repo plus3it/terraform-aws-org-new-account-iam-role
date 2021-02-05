@@ -7,7 +7,7 @@ variable "role_name" {
   type        = string
 }
 variable "role_permission_policy" {
-  description = "colon [:] delimited list of permission policy names to action"
+  description = "AWS-managed permission policy name to attach to the role (case sensitive)"
   type        = string
 }
 variable "trust_policy" {

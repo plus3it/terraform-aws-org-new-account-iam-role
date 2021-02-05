@@ -200,6 +200,7 @@ def main(
     role_permission_policy,
     trust_policy,
     assume_role_arn=None,
+    partition="aws",
     botocore_cache_dir=BOTOCORE_CACHE_DIR,
 ):  # pylint: disable=too-many-arguments
     """Create or update a IAM role with a trusted relationship."""
@@ -231,7 +232,7 @@ def main(
         raise Exception(f"Unable to create '{role_name}' role.")
 
     # Detach the permission policy(s) associated with the role.
-    policy_arn = f"arn:aws:iam::aws:policy/{role_permission_policy}"
+    policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
     iam_role_create_policy(iam_client, role, role_name, policy_arn)
     return 0
 
@@ -252,8 +253,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     # E_PROVREADONLY.
     role_name = os.environ.get("ROLE_NAME")
 
-    # Required:  role-permission-policy.  Name of AWS Permission Policy
-    # such as 'ReadOnlyAccess' to de/attach.
+    # Required:  role-permission-policy.  AWS-managed permission policy to
+    # attach to the role.
     permission_policy = os.environ.get("PERMISSION_POLICY")
 
     # Required:  trust-policy.  JSON-formatted string with trust policy.
@@ -276,7 +277,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     if not permission_policy:
         LOG.critical(
             "Environment variable 'PERMISSION_POLICY' must provide "
-            "the list of AWS managed permission policies to action."
+            "the AWS-managed permission policy to attach to role."
         )
     if not trust_policy:
         LOG.critical(
@@ -298,6 +299,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             role_permission_policy=permission_policy,
             trust_policy=trust_policy,
             assume_role_arn=role_arn,
+            partition=partition,
             botocore_cache_dir=botocore_cache_dir,
         )
     except Exception as exc:
@@ -332,13 +334,13 @@ NOTE:  Use the environment variable 'LOG_LEVEL' to set the desired log level
             "--role-permission-policy",
             required=True,
             type=str,
-            help="delimited [:] list of AWS managed permission policies to action",
+            help="AWS-managed permission policy to attach to role",
         )
         required_args.add_argument(
             "--trust-policy",
             required=True,
             type=str,
-            help="JSON-formatted string containing the new role trust policy.",
+            help="JSON-formatted string containing the new role trust policy",
         )
         parser.add_argument(
             "--assume-role-arn",
