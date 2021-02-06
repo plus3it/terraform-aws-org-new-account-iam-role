@@ -31,7 +31,7 @@ jobs:
       deploy:
         provider: releases
         api_key:
-          secure: 4224d33b8569bec8473980bb1bdb982639426a92
+          secure: 
         name: $RELEASE_VERSION
         body: $RELEASE_BODY
         tag_name: $RELEASE_VERSION

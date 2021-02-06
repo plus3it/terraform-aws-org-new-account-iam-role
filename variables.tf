@@ -10,7 +10,7 @@ variable "role_permission_policy" {
   description = "AWS-managed permission policy name to attach to the role (case sensitive)"
   type        = string
 }
-variable "trust_policy" {
+variable "trust_policy_json" {
   description = "JSON-formatted string containing the role trust policy"
   type        = string
 }

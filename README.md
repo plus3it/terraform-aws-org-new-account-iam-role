@@ -27,7 +27,7 @@ TBD
 | assume\_role\_name | Name of IAM role to assume the target account (case sensitive) | `string` | n/a | yes |
 | role\_name | Name of the IAM role to create in the target account (case sensitive) | `string` | n/a | yes |
 | role\_permission\_policy | AWS-managed permission policy name to attach to the role (case sensitive) | `string` | n/a | yes |
-| trust\_policy | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
+| trust\_policy\_json | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
 | log\_level | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"Info"` | no |
 
 ## Outputs

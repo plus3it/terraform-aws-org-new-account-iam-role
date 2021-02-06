@@ -168,12 +168,12 @@ def iam_update_role_description(iam_client, role_name):
     iam_client.update_role_description(RoleName=role_name, Description=description)
 
 
-def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy):
+def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
-    LOG.info("%s: Adding trust relationship: %s", role_name, trust_policy)
+    LOG.info("%s: Adding trust relationship: %s", role_name, trust_policy_json)
     try:
         role = iam_resource.create_role(
-            RoleName=role_name, AssumeRolePolicyDocument=trust_policy
+            RoleName=role_name, AssumeRolePolicyDocument=trust_policy_json
         )
         iam_update_role_description(iam_client, role_name)
         role.reload()
@@ -198,7 +198,7 @@ def main(
     aws_profile,
     role_name,
     role_permission_policy,
-    trust_policy,
+    trust_policy_json,
     assume_role_arn=None,
     partition="aws",
     botocore_cache_dir=BOTOCORE_CACHE_DIR,
@@ -207,12 +207,12 @@ def main(
     # Validate trust policy contains properly formatted JSON.  This is
     # not a validation against a schema, so the JSON could still be bad.
     try:
-        json.loads(trust_policy)
+        json.loads(trust_policy_json)
     except json.decoder.JSONDecodeError as exc:
         # pylint: disable=raise-missing-from
         raise Exception(
-            f"'trust-policy' contains badly formed JSON:"
-            f"\n\t{exc}\n\tJSON input:  {trust_policy}"
+            f"'trust-policy-json' contains badly formed JSON:"
+            f"\n\t{exc}\n\tJSON input:  {trust_policy_json}"
         )
 
     # Validate that either role arn or an AWS profile was supplied, as one
@@ -227,7 +227,7 @@ def main(
 
     # Create a role using the role name and assign it an assumed trust policy
     # with the user-supplied JSON.
-    role = iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy)
+    role = iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json)
     if not role:
         raise Exception(f"Unable to create '{role_name}' role.")
 
@@ -257,16 +257,16 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     # attach to the role.
     permission_policy = os.environ.get("PERMISSION_POLICY")
 
-    # Required:  trust-policy.  JSON-formatted string with trust policy.
-    trust_policy = os.environ.get("TRUST_POLICY")
+    # Required:  trust-policy-json.  JSON-formatted string with trust policy.
+    trust_policy_json = os.environ.get("TRUST_POLICY_JSON")
 
     LOG.info(
         "Environment variables:\n\tASSUME_ROLE_NAME=%s\n\tROLE_NAME=%s"
-        "\n\tPERMISSION_POLICY=%s\n\tTRUST_POLICY=%s",
+        "\n\tPERMISSION_POLICY=%s\n\tTRUST_POLICY_JSON=%s",
         assume_role_name,
         role_name,
         permission_policy,
-        json.dumps(json.loads(trust_policy), indent=4),
+        json.dumps(json.loads(trust_policy_json), indent=4),
     )
 
     if not role_name:
@@ -279,10 +279,10 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             "Environment variable 'PERMISSION_POLICY' must provide "
             "the AWS-managed permission policy to attach to role."
         )
-    if not trust_policy:
+    if not trust_policy_json:
         LOG.critical(
-            "Environment variable 'TRUST_POLICY' must be a JSON-formatted "
-            "containing the role trust policy."
+            "Environment variable 'TRUST_POLICY_JSON' must be a JSON-"
+            "formatted string containing the role trust policy."
         )
 
     # Override the default boto cache dir because only `/tmp/` is writable.
@@ -297,7 +297,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             aws_profile=None,
             role_name=role_name,
             role_permission_policy=permission_policy,
-            trust_policy=trust_policy,
+            trust_policy_json=trust_policy_json,
             assume_role_arn=role_arn,
             partition=partition,
             botocore_cache_dir=botocore_cache_dir,
@@ -337,7 +337,7 @@ NOTE:  Use the environment variable 'LOG_LEVEL' to set the desired log level
             help="AWS-managed permission policy to attach to role",
         )
         required_args.add_argument(
-            "--trust-policy",
+            "--trust-policy-json",
             required=True,
             type=str,
             help="JSON-formatted string containing the new role trust policy",
