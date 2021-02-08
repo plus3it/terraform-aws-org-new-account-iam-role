@@ -159,8 +159,8 @@ def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
     return boto
 
 
-def iam_update_role_description(iam_client, role_name):
-    """Update the role description with timestamp and program filename."""
+def iam_add_role_description(iam_client, role_name):
+    """Add a role description with timestamp and program filename."""
     description = (
         f"This role was updated {datetime.datetime.now()} by "
         f"{os.path.basename(__file__)}"
@@ -175,7 +175,7 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
         role = iam_resource.create_role(
             RoleName=role_name, AssumeRolePolicyDocument=trust_policy_json
         )
-        iam_update_role_description(iam_client, role_name)
+        iam_add_role_description(iam_client, role_name)
         role.reload()
     except botocore.exceptions.ClientError as err:
         role = None
@@ -188,7 +188,7 @@ def iam_role_create_policy(iam_client, role, role_name, policy_arn):
     LOG.info("%s: Attaching policy %s", role_name, policy_arn)
     try:
         role.attach_policy(PolicyArn=policy_arn)
-        iam_update_role_description(iam_client, role_name)
+        iam_add_role_description(iam_client, role_name)
         role.reload()
     except botocore.exceptions.ClientError as err:
         LOG.error("%s: Unable to attach policy:\n\t%s", role_name, err)
