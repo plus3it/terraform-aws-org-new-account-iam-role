@@ -85,6 +85,10 @@ def get_partition():
 ### Classes and functions specific to creating the cross-account role.
 
 
+class IamRoleInvalidArgumentsException(Exception):
+    """Invalid arguments used to create a role or trust policy."""
+
+
 class AssumeRoleProvider:  # pylint: disable=too-few-public-methods
     """Provide refreshable credentials for assumed role."""
 
@@ -177,7 +181,10 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
         )
         iam_add_role_description(iam_client, role_name)
         role.reload()
-    except botocore.exceptions.ClientError as err:
+    except (
+        botocore.exceptions.ClientError,
+        botocore.parsers.ResponseParserError,
+    ) as err:
         role = None
         LOG.error("%s: Unable to create role:\n\t%s", role_name, err)
     return role
@@ -210,7 +217,7 @@ def main(
         json.loads(trust_policy_json)
     except json.decoder.JSONDecodeError as exc:
         # pylint: disable=raise-missing-from
-        raise Exception(
+        raise IamRoleInvalidArgumentsException(
             f"'trust-policy-json' contains badly formed JSON:"
             f"\n\t{exc}\n\tJSON input:  {trust_policy_json}"
         )
@@ -218,7 +225,9 @@ def main(
     # Validate that either role arn or an AWS profile was supplied, as one
     # of them is needed to create a AWS session.
     if not assume_role_arn and not aws_profile:
-        raise Exception("One of 'assume-role-arn' or 'aws-profile' is required")
+        raise IamRoleInvalidArgumentsException(
+            "One of 'assume-role-arn' or 'aws-profile' is required"
+        )
 
     # Create a session using the role arn or AWS profile.
     session = get_session(assume_role_arn, aws_profile, botocore_cache_dir)
@@ -229,7 +238,7 @@ def main(
     # with the user-supplied JSON.
     role = iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json)
     if not role:
-        raise Exception(f"Unable to create '{role_name}' role.")
+        raise IamRoleInvalidArgumentsException(f"Unable to create '{role_name}' role.")
 
     # Detach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
@@ -302,7 +311,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             partition=partition,
             botocore_cache_dir=botocore_cache_dir,
         )
-    except Exception as exc:
+    except (IamRoleInvalidArgumentsException, Exception) as exc:
         LOG.exception("Caught error: %s", exc, exc_info=exc)
         raise
 
