@@ -86,7 +86,7 @@ def get_partition():
 
 
 class IamRoleInvalidArgumentsError(Exception):
-    """Invalid arguments used to create a role or trust policy."""
+    """Invalid arguments were used to create a role or trust policy."""
 
 
 class AssumeRoleProvider:  # pylint: disable=too-few-public-methods
@@ -121,7 +121,7 @@ def assume_role(
     """Return an assumed role session with refreshable credentials.
 
     Code for this function and class AccountRoleProvider were taken from
-    below, with modifications for the cache dir:
+    below, with modifications made for the cache dir:
         https://github.com/boto/botocore/issues/761
     """
     cache_dir = cache_dir or botocore.credentials.JSONFileCache.CACHE_DIR
@@ -149,7 +149,7 @@ def assume_role(
 
 
 def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
-    """Return session established through the role arn or our AWS profile."""
+    """Return boto3 session established using a role arn or AWS profile."""
     if assume_role_arn:
         LOG.info("Establishing session by assuming role: %s", assume_role_arn)
         boto = assume_role(
@@ -157,6 +157,7 @@ def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
             assume_role_arn,
             cache_dir=botocore_cache_dir,
         )
+        boto = boto3.session.Session(botocore_session=boto)
     elif aws_profile:
         LOG.info("Establishing session using profile: %s", aws_profile)
         boto = boto3.Session(profile_name=aws_profile)
@@ -174,7 +175,11 @@ def iam_add_role_description(iam_client, role_name):
 
 def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
-    LOG.info("%s: Adding trust relationship: %s", role_name, trust_policy_json)
+    LOG.info(
+        "%s: Adding trust relationship: %s",
+        role_name,
+        json.dumps(json.loads(trust_policy_json), indent=4),
+    )
     try:
         role = iam_resource.create_role(
             RoleName=role_name, AssumeRolePolicyDocument=trust_policy_json
@@ -184,6 +189,7 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
     except (
         botocore.exceptions.ClientError,
         botocore.parsers.ResponseParserError,
+        botocore.exceptions.ParamValidationError,
     ) as exc:
         role = None
         LOG.error("%s: Unable to create role:\n\t%s", role_name, exc)
@@ -198,7 +204,11 @@ def iam_role_create_policy(iam_client, role, role_name, policy_arn):
         role.attach_policy(PolicyArn=policy_arn)
         iam_add_role_description(iam_client, role_name)
         role.reload()
-    except (botocore.exceptions.ClientError, KeyError) as exc:
+    except (
+        botocore.exceptions.ClientError,
+        botocore.exceptions.ParamValidationError,
+        KeyError,
+    ) as exc:
         # Note:  KeyError is seen when the policy ARN has a invalid policy
         # name, e.g. isn't a known policy name.
         LOG.error("%s: Unable to attach policy:\n\t%s", role_name, exc)
@@ -245,7 +255,7 @@ def main(
     if not role:
         raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
-    # Detach the permission policy(s) associated with the role.
+    # Attach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
     if not iam_role_create_policy(iam_client, role, role_name, policy_arn):
         raise IamRoleInvalidArgumentsError(
@@ -255,13 +265,13 @@ def main(
 
 
 def lambda_handler(event, context):  # pylint: disable=unused-argument
-    """Entry point if script called by AWS LAMBDA."""
+    """Entry point if script called by AWS Lamdba."""
     LOG.info("Received event:\n%s", json.dumps(event))
 
     # For the CLI entrypoint (main), argparse will ensure that required
-    # arguments are provided and that arguments are restricted as necessary.
-    # The Lambda entrypoint uses environment variables to supply "arguments"
-    # and those checks must be performed here.
+    # arguments are provided.  The Lambda entrypoint uses environment
+    # variables to supply "arguments" and checks for required arguments
+    # are performed here.
 
     # Optional:  Used to create assume-role-arn.
     assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
@@ -283,26 +293,31 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         assume_role_name,
         role_name,
         permission_policy,
-        json.dumps(json.loads(trust_policy_json), indent=4),
+        trust_policy_json,
     )
 
+    # Check for missing requirement environment variables.
+    msg = None
     if not role_name:
-        LOG.critical(
+        msg = (
             "Environment variable 'ROLE_NAME' must provide "
             "the name of the IAM role to create."
         )
     if not permission_policy:
-        LOG.critical(
+        msg = (
             "Environment variable 'PERMISSION_POLICY' must provide "
             "the AWS-managed permission policy to attach to role."
         )
     if not trust_policy_json:
-        LOG.critical(
+        msg = (
             "Environment variable 'TRUST_POLICY_JSON' must be a JSON-"
             "formatted string containing the role trust policy."
         )
+    if msg:
+        LOG.error(msg)
+        raise IamRoleInvalidArgumentsError(msg)
 
-    # Override the default boto cache dir because only `/tmp/` is writable.
+    # If there is no default boto cache dir use "/tmp/" as it is writable.
     botocore_cache_dir = BOTOCORE_CACHE_DIR or "/tmp/.aws/boto/cache"
 
     try:
@@ -320,7 +335,7 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             botocore_cache_dir=botocore_cache_dir,
         )
     except (IamRoleInvalidArgumentsError, Exception) as exc:
-        LOG.exception("Caught error: %s", exc)
+        LOG.error("Error: %s", exc)
         raise
 
 
@@ -339,7 +354,7 @@ NOTE:  Use the environment variable 'LOG_LEVEL' to set the desired log level
         required_args = parser.add_argument_group("required named arguments")
         parser.add_argument(
             "--aws-profile",
-            help="Credentials profile for IAM user used to establish a session",
+            help="Credentials profile for IAM user for establishing a session",
         )
         required_args.add_argument(
             "--role-name",
