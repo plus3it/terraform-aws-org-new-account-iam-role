@@ -32,7 +32,7 @@ LOG = Logger(
 ### Classes and functions specific to the Lambda event handler itself.
 
 
-class AccountCreationFailedException(Exception):
+class AccountCreationFailedError(Exception):
     """Account creation failed."""
 
 
@@ -55,7 +55,7 @@ def get_new_account_id(event):
             return account_status["CreateAccountStatus"]["AccountId"]
         if state == "FAILED":
             LOG.error("Account creation failed:\n%s", json.dumps(account_status))
-            raise AccountCreationFailedException
+            raise AccountCreationFailedError
         LOG.info("Account state: %s. Sleeping 5 seconds and will try again...", state)
         time.sleep(5)
 
@@ -85,7 +85,7 @@ def get_partition():
 ### Classes and functions specific to creating the cross-account role.
 
 
-class IamRoleInvalidArgumentsException(Exception):
+class IamRoleInvalidArgumentsError(Exception):
     """Invalid arguments used to create a role or trust policy."""
 
 
@@ -184,21 +184,26 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
     except (
         botocore.exceptions.ClientError,
         botocore.parsers.ResponseParserError,
-    ) as err:
+    ) as exc:
         role = None
-        LOG.error("%s: Unable to create role:\n\t%s", role_name, err)
+        LOG.error("%s: Unable to create role:\n\t%s", role_name, exc)
     return role
 
 
 def iam_role_create_policy(iam_client, role, role_name, policy_arn):
-    """Attach or detach the permission policy."""
+    """Return True if permission policy can be attached, else False."""
     LOG.info("%s: Attaching policy %s", role_name, policy_arn)
+    is_success = True
     try:
         role.attach_policy(PolicyArn=policy_arn)
         iam_add_role_description(iam_client, role_name)
         role.reload()
-    except botocore.exceptions.ClientError as err:
-        LOG.error("%s: Unable to attach policy:\n\t%s", role_name, err)
+    except (botocore.exceptions.ClientError, KeyError) as exc:
+        # Note:  KeyError is seen when the policy ARN has a invalid policy
+        # name, e.g. isn't a known policy name.
+        LOG.error("%s: Unable to attach policy:\n\t%s", role_name, exc)
+        is_success = False
+    return is_success
 
 
 def main(
@@ -217,7 +222,7 @@ def main(
         json.loads(trust_policy_json)
     except json.decoder.JSONDecodeError as exc:
         # pylint: disable=raise-missing-from
-        raise IamRoleInvalidArgumentsException(
+        raise IamRoleInvalidArgumentsError(
             f"'trust-policy-json' contains badly formed JSON:"
             f"\n\t{exc}\n\tJSON input:  {trust_policy_json}"
         )
@@ -225,7 +230,7 @@ def main(
     # Validate that either role arn or an AWS profile was supplied, as one
     # of them is needed to create a AWS session.
     if not assume_role_arn and not aws_profile:
-        raise IamRoleInvalidArgumentsException(
+        raise IamRoleInvalidArgumentsError(
             "One of 'assume-role-arn' or 'aws-profile' is required"
         )
 
@@ -238,11 +243,14 @@ def main(
     # with the user-supplied JSON.
     role = iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json)
     if not role:
-        raise IamRoleInvalidArgumentsException(f"Unable to create '{role_name}' role.")
+        raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
     # Detach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
-    iam_role_create_policy(iam_client, role, role_name, policy_arn)
+    if not iam_role_create_policy(iam_client, role, role_name, policy_arn):
+        raise IamRoleInvalidArgumentsError(
+            f"Unable to attach '{policy_arn}'to {role_name}."
+        )
     return 0
 
 
@@ -311,8 +319,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             partition=partition,
             botocore_cache_dir=botocore_cache_dir,
         )
-    except (IamRoleInvalidArgumentsException, Exception) as exc:
-        LOG.exception("Caught error: %s", exc, exc_info=exc)
+    except (IamRoleInvalidArgumentsError, Exception) as exc:
+        LOG.exception("Caught error: %s", exc)
         raise
 
 
