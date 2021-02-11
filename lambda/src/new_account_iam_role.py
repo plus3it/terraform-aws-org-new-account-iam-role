@@ -188,8 +188,8 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
         role.reload()
     except (
         botocore.exceptions.ClientError,
-        botocore.parsers.ResponseParserError,
         botocore.exceptions.ParamValidationError,
+        botocore.parsers.ResponseParserError,
     ) as exc:
         role = None
         LOG.error("%s: Unable to create role:\n\t%s", role_name, exc)
@@ -297,25 +297,25 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     )
 
     # Check for missing requirement environment variables.
-    msg = None
+    msg = []
     if not role_name:
-        msg = (
+        msg.append(
             "Environment variable 'ROLE_NAME' must provide "
             "the name of the IAM role to create."
         )
     if not permission_policy:
-        msg = (
+        msg.append(
             "Environment variable 'PERMISSION_POLICY' must provide "
             "the AWS-managed permission policy to attach to role."
         )
     if not trust_policy_json:
-        msg = (
+        msg.append(
             "Environment variable 'TRUST_POLICY_JSON' must be a JSON-"
             "formatted string containing the role trust policy."
         )
     if msg:
-        LOG.error(msg)
-        raise IamRoleInvalidArgumentsError(msg)
+        LOG.error("\n".join(msg))
+        raise IamRoleInvalidArgumentsError("\n".join(msg))
 
     # If there is no default boto cache dir use "/tmp/" as it is writable.
     botocore_cache_dir = BOTOCORE_CACHE_DIR or "/tmp/.aws/boto/cache"
