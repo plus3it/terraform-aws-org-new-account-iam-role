@@ -28,7 +28,7 @@ def aws_credentials(tmpdir):
 
     In addition to using the aws_credentials fixture, the test functions
     must also use a mocked client.  For this test file, that would be the
-    test fixture "iam_client", which invokes "mock_iam()"
+    test fixture "iam_client", which invokes "mock_iam()" or "sts_client".
     """
     # Create a temporary AWS credentials file for calls to boto.Session().
     aws_creds = [
@@ -40,7 +40,7 @@ def aws_credentials(tmpdir):
     path.write("\n".join(aws_creds))
     os.environ["AWS_SHARED_CREDENTIALS_FILE"] = str(path)
 
-    # Ensure that any existing environment variables are overriden with
+    # Ensure that any existing environment variables are overridden with
     # 'mock' values.
     os.environ["AWS_ACCESS_KEY_ID"] = "testing"
     os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
@@ -95,7 +95,6 @@ def valid_role(iam_client, valid_trust_policy):
 @pytest.fixture(scope="function")
 def monkeypatch_get_account_id(monkeypatch):
     """Mock get_account_id() to return a fake account ID."""
-
     def mock_get_account_id(event):  # pylint: disable=unused-argument
         return ACCOUNT_ID
 
@@ -143,6 +142,8 @@ def test_main_func_valid_arguments(
         trust_policy_json=valid_trust_policy,
     )
     assert return_code == 0
+    roles = [role['RoleName'] for role in iam_client.list_roles()['Roles']]
+    assert 'TEST_IAM_ROLE_VALID_ARGS' in roles
 
 
 def test_iam_role_create_trust_func_bad_args(
@@ -190,12 +191,14 @@ def test_lambda_handler_valid_arguments(
 ):  # pylint: disable=unused-argument
     """Invoke the lambda handler with only valid arguments."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
+    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_EVENT_ARGS"
     os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
     # The lambda function doesn't return anything, but will generate
     # an exception for failure.  So returning nothing is considered success.
     assert not lambda_func.lambda_handler("mocked_event", None)
+    roles = [role['RoleName'] for role in iam_client.list_roles()['Roles']]
+    assert 'TEST_IAM_ROLE_VALID_EVENT_ARGS' in roles
 
 
 def test_lambda_handler_missing_role_name(
