@@ -19,6 +19,8 @@ import new_account_iam_role as lambda_func
 
 AWS_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
+# Ignore warnings about redefined-outer-name; pylint doesn't understand
+# that it's ok to use fixture names as parameters to functions.
 # pylint: disable=redefined-outer-name
 
 
