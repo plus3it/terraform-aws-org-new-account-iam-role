@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-export PYTHONPATH := $(PYTHONPATH):./src
+export PYTHONPATH := $(PYTHONPATH):./lambda/src
 
 include $(shell test -f .tardigrade-ci || curl -sSL -o .tardigrade-ci "https://raw.githubusercontent.com/plus3it/tardigrade-ci/master/bootstrap/Makefile.bootstrap"; echo .tardigrade-ci)
 
@@ -14,7 +14,7 @@ python/deps:
 python/test: | guard/program/pytest
 python/test:
 	@ echo "[$@] Starting Python tests"
-	cd lambda && pytest
+	pytest
 	@ echo "[$@]: Tests executed!"
 
 .PHONY: python/deps python/test
