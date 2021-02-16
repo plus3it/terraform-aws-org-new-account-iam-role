@@ -174,15 +174,15 @@ def test_iam_role_create_trust_func_bad_args(iam_client, valid_trust_policy, cap
     assert "Unable to create role" in caplog.text
 
 
-def test_iam_role_create_policy_bad_policy(iam_client, valid_role, caplog):
-    """Invoke iam_role_create_policy with bad arguments.
+def test_iam_role_attach_policy(iam_client, valid_role, caplog):
+    """Invoke iam_role_attach_policy with bad arguments.
 
     This could be tested through a call to main() versus calling
-    iam_role_create_policy() directly.  But the test would then have
+    iam_role_attach_policy() directly.  But the test would then have
     to look for an exception rather than a return value.
     """
     policy_arn = "arn:aws:iam::aws:policy/NotAwsManagedPolicy"
-    is_success = lambda_func.iam_role_create_policy(
+    is_success = lambda_func.iam_role_attach_policy(
         iam_client, valid_role, "TEST_IAM_ROLE_BAD_POLICY_NAME", policy_arn
     )
     assert not is_success

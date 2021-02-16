@@ -196,7 +196,7 @@ def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json
     return role
 
 
-def iam_role_create_policy(iam_client, role, role_name, policy_arn):
+def iam_role_attach_policy(iam_client, role, role_name, policy_arn):
     """Return True if permission policy can be attached, else False."""
     LOG.info("%s: Attaching policy %s", role_name, policy_arn)
     is_success = True
@@ -257,9 +257,9 @@ def main(
 
     # Attach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
-    if not iam_role_create_policy(iam_client, role, role_name, policy_arn):
+    if not iam_role_attach_policy(iam_client, role, role_name, policy_arn):
         raise IamRoleInvalidArgumentsError(
-            f"Unable to attach '{policy_arn}'to {role_name}."
+            f"Unable to attach '{policy_arn}' to {role_name}."
         )
     return 0
 
