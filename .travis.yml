@@ -10,22 +10,19 @@ python:
   - "3.9"
 
 stages:
-  - lint
-  - unit_test
+  - test
   - deploy
 
 if: branch = master OR type = pull_request
 
 jobs:
   include:
-    - stage: lint
-      name: Project Syntax Verification
-      language: node_js
-      script: make docker/run target=lint
-    - stage: unit_test
-      name: Python unit testing
+    - stage: test
+      name: Project Syntax Verification and Unit Testing
       language: python
-      script: make docker/run target=python/test
+      script: 
+        - make docker/run target=lint
+        - make docker/run target=python/test
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
       language: node_js
