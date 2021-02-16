@@ -19,9 +19,5 @@ tardigrade-ci/
 # terratest packaging
 tests/go.*
 
-# TF AWS resounce handler
-aws/
-awscliv2.zip
-
 # python cache
 __pycache__
