@@ -1,12 +1,13 @@
 """Test event handler and main() of new_account_iam_role.
 
-This is testing a fairly basic lambda function, so the tests are
+This is testing a rather basic lambda function, so the tests are
 basic as well:
 
     - test arguments to main()
     - test some of the functions invoked by main()
     - test event handler arguments
 """
+import json
 import os
 
 import pytest
@@ -68,14 +69,17 @@ def sts_client(aws_credentials):  # pylint: disable=unused-argument
 @pytest.fixture(scope="session")
 def valid_trust_policy():
     """Return a valid JSON policy for use in testing."""
-    return (
-        f'{{"Version": "2012-10-17", "Statement": '
-        f'[{{"Action": "sts:AssumeRole", '
-        f'"Principal": {{"AWS": "arn:aws:iam::{ACCOUNT_ID}:root"}}, '
-        f'"Effect": "Allow"}}, {{"Action": "sts:AssumeRole", '
-        f'"Principal": {{"AWS": "arn:aws:iam::222222222222:root"}}, '
-        f'"Effect": "Allow"}}]}}'
-    )
+    valid_json = {
+        "Version": "2012-10-17",
+        "Statement": [
+            {
+                "Action": "sts:AssumeRole",
+                "Principal": {"AWS": f"arn:aws:iam::{ACCOUNT_ID}:root"},
+                "Effect": "Allow",
+            }
+        ],
+    }
+    return json.dumps(valid_json)
 
 
 @pytest.fixture(scope="function")
@@ -134,9 +138,7 @@ def test_invalid_trust_policy_json():
     assert "'trust-policy-json' contains badly formed JSON" in str(exc.value)
 
 
-def test_main_func_valid_arguments(
-    iam_client, valid_trust_policy
-):  # pylint: disable=unused-argument
+def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     """Test use of valid arguments for main()."""
     return_code = lambda_func.main(
         aws_profile="testing",
@@ -149,9 +151,7 @@ def test_main_func_valid_arguments(
     assert "TEST_IAM_ROLE_VALID_ARGS" in roles
 
 
-def test_iam_role_create_trust_func_bad_args(
-    iam_client, valid_trust_policy, caplog
-):  # pylint: disable=unused-argument
+def test_iam_role_create_trust_func_bad_args(iam_client, valid_trust_policy, caplog):
     """Invoke iam_role_create_trust() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
