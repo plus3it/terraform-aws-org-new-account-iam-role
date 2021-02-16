@@ -1,17 +1,14 @@
 # terraform-aws-org-new-account-iam-role
 
-A Terraform module to bootstrap a cross-account IAM Role into an AWS 
-Account that can be used when new accounts are created within AWS 
-Organizations.
+A Terraform module to bootstrap the creation of an IAM Role in an AWS
+Account when new accounts are created within AWS Organizations.
 
-This module creates a new IAM role, attaches an AWS-managed permission 
-policy, and uses the provided JSON-formatted string to create the trust 
-relationship between an assumed role and a second account within an 
-AWS Organization. 
+This module creates a new IAM role, attaches an AWS-managed permission
+policy, and sets the trust policy to the provided JSON-formatted string.
 
 This module uses CloudWatch Events to identify when new accounts are
 added or invited to an AWS Organization, and triggers a Lambda function
-to create the cross-account IAM role.
+to create the IAM role.
 
 <!-- BEGIN TFDOCS -->
 ## Requirements

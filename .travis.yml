@@ -20,7 +20,7 @@ jobs:
     - stage: test
       name: Project Syntax Verification and Unit Testing
       language: python
-      script: 
+      script:
         - make docker/run target=lint
         - make docker/run target=python/test
     - stage: deploy
