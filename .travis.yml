@@ -11,7 +11,7 @@ python:
 
 stages:
   - lint
-  - test
+  - unit_test
   - deploy
 
 if: branch = master OR type = pull_request
@@ -20,8 +20,9 @@ jobs:
   include:
     - stage: lint
       name: Project Syntax Verification
+      language: node_js
       script: make docker/run target=lint
-    - stage: test
+    - stage: unit_test
       name: Python unit testing
       language: python
       script: make docker/run target=python/test
