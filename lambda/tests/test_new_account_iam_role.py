@@ -86,13 +86,13 @@ def valid_trust_policy():
 def valid_role(iam_client, valid_trust_policy):
     """Return a valid role.
 
-    This assumes iam_role_create_trust() works properly, but there are
+    This assumes iam_create_role() works properly, but there are
     tests for that.
     """
     session = boto3.Session(profile_name="testing")
     iam_resource = session.resource("iam")
 
-    role = lambda_func.iam_role_create_trust(
+    role = lambda_func.iam_create_role(
         iam_resource, iam_client, "TEST_IAM_ROLE_VALID", valid_trust_policy
     )
     return role
@@ -151,11 +151,11 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     assert "TEST_IAM_ROLE_VALID_ARGS" in roles
 
 
-def test_iam_role_create_trust_func_bad_args(iam_client, valid_trust_policy, caplog):
-    """Invoke iam_role_create_trust() using JSON with a bad field name.
+def test_iam_create_role_func_bad_args(iam_client, valid_trust_policy, caplog):
+    """Invoke iam_create_role() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
-    iam_role_create_trust() directly.  But the test would then have
+    iam_create_role() directly.  But the test would then have
     to look for an exception rather than a return value.
     """
     session = boto3.Session(profile_name="testing")
@@ -163,11 +163,11 @@ def test_iam_role_create_trust_func_bad_args(iam_client, valid_trust_policy, cap
 
     # Unable to get a bogus trust policy to fail using mocked boto3.
     # bad_trust_policy = '{"Version": "2012-10-17", "nada": []}'
-    # role = lambda_func.iam_role_create_trust(
+    # role = lambda_func.iam_create_role(
     #    iam_resource, iam_client, "TEST_IAM_ROLE_BAD_POLICY", bad_trust_policy)
 
     # But a bad role name will fail with a mocked call.
-    role = lambda_func.iam_role_create_trust(
+    role = lambda_func.iam_create_role(
         iam_resource, iam_client, "TEST#TRUST&ROLE", valid_trust_policy
     )
     assert not role

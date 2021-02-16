@@ -173,7 +173,7 @@ def iam_add_role_description(iam_client, role_name):
     iam_client.update_role_description(RoleName=role_name, Description=description)
 
 
-def iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json):
+def iam_create_role(iam_resource, iam_client, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
     LOG.info(
         "%s: Adding trust relationship: %s",
@@ -251,7 +251,7 @@ def main(
 
     # Create a role using the role name and assign it an assumed trust policy
     # with the user-supplied JSON.
-    role = iam_role_create_trust(iam_resource, iam_client, role_name, trust_policy_json)
+    role = iam_create_role(iam_resource, iam_client, role_name, trust_policy_json)
     if not role:
         raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
