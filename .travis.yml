@@ -1,12 +1,17 @@
 dist: bionic
 
-language: node_js
-
 node_js:
   - "12"
 
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+  - "3.9"
+
 stages:
   - lint
+  - test
   - deploy
 
 if: branch = master OR type = pull_request
@@ -15,9 +20,14 @@ jobs:
   include:
     - stage: lint
       name: Project Syntax Verification
-      script: make && make docker/run target=lint
+      script: make docker/run target=lint
+    - stage: test
+      name: Python unit testing
+      language: python
+      script: make docker/run target=python/test
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
+      language: node_js
       before_script:
         - |
           PRIOR_VERSION=$(git describe --abbrev=0 --tags)
