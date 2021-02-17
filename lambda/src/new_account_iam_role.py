@@ -43,7 +43,7 @@ def get_new_account_id(event):
         .get("responseElements", {})
         .get("createAccountStatus", {})["id"]  # fmt: no
     )
-    LOG.info("createAccountStatus = %s", create_account_status_id)
+    LOG.info({"create_account_status_id": create_account_status_id})
 
     org = boto3.client("organizations")
     while True:
@@ -54,9 +54,9 @@ def get_new_account_id(event):
         if state == "SUCCEEDED":
             return account_status["CreateAccountStatus"]["AccountId"]
         if state == "FAILED":
-            LOG.error("Account creation failed:\n%s", json.dumps(account_status))
+            LOG.error({"create_account_status_failure": account_status})
             raise AccountCreationFailedError
-        LOG.info("Account state: %s. Sleeping 5 seconds and will try again...", state)
+        LOG.info({"create_account_status_state": state})
         time.sleep(5)
 
 
@@ -151,7 +151,7 @@ def assume_role(
 def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
     """Return boto3 session established using a role arn or AWS profile."""
     if assume_role_arn:
-        LOG.info("Establishing session by assuming role: %s", assume_role_arn)
+        LOG.info({"assumed_role": assume_role_arn})
         boto = assume_role(
             botocore.session.Session(),
             assume_role_arn,
@@ -159,7 +159,7 @@ def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
         )
         boto = boto3.session.Session(botocore_session=boto)
     elif aws_profile:
-        LOG.info("Establishing session using profile: %s", aws_profile)
+        LOG.info({"session_profile": aws_profile})
         boto = boto3.Session(profile_name=aws_profile)
     return boto
 
@@ -175,11 +175,7 @@ def iam_add_role_description(iam_client, role_name):
 
 def iam_create_role(iam_resource, iam_client, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
-    LOG.info(
-        "%s: Adding trust relationship: %s",
-        role_name,
-        json.dumps(json.loads(trust_policy_json), indent=4),
-    )
+    LOG.info({"role_name": role_name, "trust_policy": trust_policy_json})
     try:
         role = iam_resource.create_role(
             RoleName=role_name, AssumeRolePolicyDocument=trust_policy_json
@@ -192,13 +188,19 @@ def iam_create_role(iam_resource, iam_client, role_name, trust_policy_json):
         botocore.parsers.ResponseParserError,
     ) as exc:
         role = None
-        LOG.error("%s: Unable to create role:\n\t%s", role_name, exc)
+        LOG.error(
+            {
+                "role_name": role_name,
+                "failure_msg": "Unable to create role",
+                "failure": exc,
+            }
+        )
     return role
 
 
 def iam_attach_policy(iam_client, role, role_name, policy_arn):
     """Return True if permission policy can be attached, else False."""
-    LOG.info("%s: Attaching policy %s", role_name, policy_arn)
+    LOG.info({"role_name": role_name, "aws_managed_policy": policy_arn})
     is_success = True
     try:
         role.attach_policy(PolicyArn=policy_arn)
@@ -211,7 +213,13 @@ def iam_attach_policy(iam_client, role, role_name, policy_arn):
     ) as exc:
         # Note:  KeyError is seen when the policy ARN has a invalid policy
         # name, e.g. isn't a known policy name.
-        LOG.error("%s: Unable to attach policy:\n\t%s", role_name, exc)
+        LOG.error(
+            {
+                "role_name": role_name,
+                "failure_msg": "Unable to attach policy",
+                "failure": exc,
+            }
+        )
         is_success = False
     return is_success
 
@@ -233,8 +241,7 @@ def main(
     except json.decoder.JSONDecodeError as exc:
         # pylint: disable=raise-missing-from
         raise IamRoleInvalidArgumentsError(
-            f"'trust-policy-json' contains badly formed JSON:"
-            f"\n\t{exc}\n\tJSON input:  {trust_policy_json}"
+            f"'trust-policy-json' contains badly formed JSON: {exc}"
         )
 
     # Validate that either role arn or an AWS profile was supplied, as one
@@ -264,10 +271,9 @@ def main(
     return 0
 
 
+@LOG.inject_lambda_context(log_event=True)
 def lambda_handler(event, context):  # pylint: disable=unused-argument
     """Entry point if script called by AWS Lamdba."""
-    LOG.info("Received event:\n%s", json.dumps(event))
-
     # For the CLI entrypoint (main), argparse will ensure that required
     # arguments are provided.  The Lambda entrypoint uses environment
     # variables to supply "arguments" and checks for required arguments
@@ -288,34 +294,38 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     trust_policy_json = os.environ.get("TRUST_POLICY_JSON")
 
     LOG.info(
-        "Environment variables:\n\tASSUME_ROLE_NAME=%s\n\tROLE_NAME=%s"
-        "\n\tPERMISSION_POLICY=%s\n\tTRUST_POLICY_JSON=%s",
-        assume_role_name,
-        role_name,
-        permission_policy,
-        trust_policy_json,
+        {
+            "ASSUME_ROLE_NAME": assume_role_name,
+            "ROLE_NAME": role_name,
+            "PERMISSION_POLICY": permission_policy,
+            "TRUST_POLICY_JSON": trust_policy_json,
+        }
     )
 
     # Check for missing requirement environment variables.
-    msg = []
     if not role_name:
-        msg.append(
+        msg = (
             "Environment variable 'ROLE_NAME' must provide "
             "the name of the IAM role to create."
         )
+        LOG.error(msg)
+        raise IamRoleInvalidArgumentsError(msg)
+
     if not permission_policy:
-        msg.append(
+        msg = (
             "Environment variable 'PERMISSION_POLICY' must provide "
             "the AWS-managed permission policy to attach to role."
         )
+        LOG.error(msg)
+        raise IamRoleInvalidArgumentsError(msg)
+
     if not trust_policy_json:
-        msg.append(
+        msg = (
             "Environment variable 'TRUST_POLICY_JSON' must be a JSON-"
             "formatted string containing the role trust policy."
         )
-    if msg:
-        LOG.error("\n".join(msg))
-        raise IamRoleInvalidArgumentsError("\n".join(msg))
+        LOG.error(msg)
+        raise IamRoleInvalidArgumentsError(msg)
 
     # If there is no default boto cache dir use "/tmp/" as it is writable.
     botocore_cache_dir = BOTOCORE_CACHE_DIR or "/tmp/.aws/boto/cache"
@@ -335,10 +345,10 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             botocore_cache_dir=botocore_cache_dir,
         )
     except (IamRoleInvalidArgumentsError, AccountCreationFailedError) as err:
-        LOG.error("Error: %s", err)
+        LOG.error({"failure": err})
         raise
-    except Exception as exc:
-        LOG.error("Unexpected, unknown exception: %s", exc)
+    except Exception:
+        LOG.exception("Unexpected, unknown exception")
         raise
 
 

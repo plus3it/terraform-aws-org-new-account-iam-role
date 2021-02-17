@@ -25,6 +25,25 @@ AWS_REGION = os.getenv("AWS_REGION", default="us-east-1")
 # pylint: disable=redefined-outer-name
 
 
+@pytest.fixture
+def lambda_context():
+    """Create mocked lambda context injected by the powertools logger."""
+
+    class LambdaContext:  # pylint: disable=too-few-public-methods
+        """Mock lambda context."""
+
+        def __init__(self):
+            """Initialize context variables."""
+            self.function_name = "test"
+            self.memory_limit_in_mb = 128
+            self.invoked_function_arn = (
+                f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:test"
+            )
+            self.aws_request_id = "52fdfc07-2182-154f-163f-5f0f9a621d72"
+
+    return LambdaContext()
+
+
 @pytest.fixture(scope="function")
 def aws_credentials(tmpdir):
     """Create mocked AWS credentials for moto.
@@ -190,7 +209,11 @@ def test_iam_attach_policy(iam_client, valid_role, caplog):
 
 
 def test_lambda_handler_valid_arguments(
-    sts_client, iam_client, monkeypatch_get_account_id, valid_trust_policy
+    lambda_context,
+    sts_client,
+    iam_client,
+    monkeypatch_get_account_id,
+    valid_trust_policy,
 ):  # pylint: disable=unused-argument
     """Invoke the lambda handler with only valid arguments."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
@@ -199,13 +222,17 @@ def test_lambda_handler_valid_arguments(
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
     # The lambda function doesn't return anything, but will generate
     # an exception for failure.  So returning nothing is considered success.
-    assert not lambda_func.lambda_handler("mocked_event", None)
+    assert not lambda_func.lambda_handler("mocked_event", lambda_context)
     roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
     assert "TEST_IAM_ROLE_VALID_EVENT_ARGS" in roles
 
 
 def test_lambda_handler_missing_role_name(
-    sts_client, iam_client, monkeypatch_get_account_id, valid_trust_policy
+    lambda_context,
+    sts_client,
+    iam_client,
+    monkeypatch_get_account_id,
+    valid_trust_policy,
 ):  # pylint: disable=unused-argument
     """Invoke the lambda handler with no trust policy JSON."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
@@ -213,7 +240,7 @@ def test_lambda_handler_missing_role_name(
     os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
     with pytest.raises(Exception) as exc:
-        lambda_func.lambda_handler("mocked_event", None)
+        lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'ROLE_NAME' must provide the name of the "
         "IAM role to create"
@@ -221,7 +248,11 @@ def test_lambda_handler_missing_role_name(
 
 
 def test_lambda_handler_missing_permission_policy(
-    sts_client, iam_client, monkeypatch_get_account_id, valid_trust_policy
+    lambda_context,
+    sts_client,
+    iam_client,
+    monkeypatch_get_account_id,
+    valid_trust_policy,
 ):  # pylint: disable=unused-argument
     """Invoke the lambda handler with no trust policy JSON."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
@@ -229,7 +260,7 @@ def test_lambda_handler_missing_permission_policy(
     os.unsetenv("PERMISSION_POLICY")
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
     with pytest.raises(Exception) as exc:
-        lambda_func.lambda_handler("mocked_event", None)
+        lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'PERMISSION_POLICY' must provide the "
         "AWS-managed permission policy"
@@ -237,6 +268,7 @@ def test_lambda_handler_missing_permission_policy(
 
 
 def test_lambda_handler_missing_trust_policy_json(
+    lambda_context,
     sts_client,
     iam_client,
     monkeypatch_get_account_id,
@@ -247,7 +279,7 @@ def test_lambda_handler_missing_trust_policy_json(
     os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
     os.unsetenv("TRUST_POLICY_JSON")
     with pytest.raises(Exception) as exc:
-        lambda_func.lambda_handler("mocked_event", None)
+        lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'TRUST_POLICY_JSON' must be a " "JSON-formatted string"
     ) in str(exc.value)
