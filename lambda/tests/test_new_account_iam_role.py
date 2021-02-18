@@ -20,10 +20,6 @@ import new_account_iam_role as lambda_func
 
 AWS_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
-# Ignore warnings about redefined-outer-name; pylint doesn't understand
-# that it's ok to use fixture names as parameters to functions.
-# pylint: disable=redefined-outer-name
-
 
 @pytest.fixture
 def lambda_context():
@@ -72,14 +68,14 @@ def aws_credentials(tmpdir):
 
 
 @pytest.fixture(scope="function")
-def iam_client(aws_credentials):  # pylint: disable=unused-argument
+def iam_client(aws_credentials):
     """Yield a mock IAM client that will not affect a real AWS account."""
     with mock_iam():
         yield boto3.client("iam", region_name=AWS_REGION)
 
 
 @pytest.fixture(scope="function")
-def sts_client(aws_credentials):  # pylint: disable=unused-argument
+def sts_client(aws_credentials):
     """Yield a mock STS client that will not affect a real AWS account."""
     with mock_sts():
         yield boto3.client("sts", region_name=AWS_REGION)
@@ -214,7 +210,7 @@ def test_lambda_handler_valid_arguments(
     iam_client,
     monkeypatch_get_account_id,
     valid_trust_policy,
-):  # pylint: disable=unused-argument
+):
     """Invoke the lambda handler with only valid arguments."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
     os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_EVENT_ARGS"
@@ -233,7 +229,7 @@ def test_lambda_handler_missing_role_name(
     iam_client,
     monkeypatch_get_account_id,
     valid_trust_policy,
-):  # pylint: disable=unused-argument
+):
     """Invoke the lambda handler with no trust policy JSON."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
     os.unsetenv("ROLE_NAME")
@@ -253,7 +249,7 @@ def test_lambda_handler_missing_permission_policy(
     iam_client,
     monkeypatch_get_account_id,
     valid_trust_policy,
-):  # pylint: disable=unused-argument
+):
     """Invoke the lambda handler with no trust policy JSON."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
     os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
@@ -272,7 +268,7 @@ def test_lambda_handler_missing_trust_policy_json(
     sts_client,
     iam_client,
     monkeypatch_get_account_id,
-):  # pylint: disable=unused-argument
+):
     """Invoke the lambda handler with no trust policy JSON."""
     os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
     os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
