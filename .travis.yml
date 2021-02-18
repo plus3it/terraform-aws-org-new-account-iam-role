@@ -25,10 +25,6 @@ jobs:
     - stage: test
       name: Project Unit Testing
       language: python
-      before_script:
-        - |
-          pip install awscli
-          aws configure --profile "testing"
       script:
         - make docker/run target=python/test
     - stage: deploy
