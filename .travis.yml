@@ -10,18 +10,27 @@ python:
   - "3.9"
 
 stages:
+  - lint
   - test
   - deploy
+
+env:
+  AWS_ACCESS_KEY_ID: testing
+  AWS_SECRET_ACCESS_KEY: testing
+  AWS_DEFAULT_REGION: us-east-1
 
 if: branch = master OR type = pull_request
 
 jobs:
   include:
-    - stage: test
-      name: Project Syntax Verification and Unit Testing
-      language: python
+    - stage: lint
+      name: Project Syntax Verification
       script:
         - make docker/run target=lint
+    - stage: test
+      name: Project Unit Testing
+      language: python
+      script:
         - make docker/run target=python/test
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
