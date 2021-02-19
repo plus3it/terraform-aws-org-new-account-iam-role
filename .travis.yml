@@ -3,12 +3,6 @@ dist: bionic
 node_js:
   - "12"
 
-python:
-  - "3.6"
-  - "3.7"
-  - "3.8"
-  - "3.9"
-
 stages:
   - lint
   - test
@@ -25,6 +19,12 @@ jobs:
     - stage: test
       name: Project Unit Testing
       language: python
+      python:
+        - "3.6"
+        - "3.7"
+        - "3.8"
+        - "3.9"
+      install: skip
       script:
         - make docker/run target=python/test
     - stage: deploy
