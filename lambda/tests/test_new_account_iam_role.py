@@ -18,7 +18,7 @@ import boto3
 
 import new_account_iam_role as lambda_func
 
-AWS_REGION = os.getenv("AWS_REGION", default="us-east-1")
+AWS_REGION = os.getenv("AWS_REGION", default="aws-global")
 
 
 @pytest.fixture
@@ -123,24 +123,11 @@ def monkeypatch_get_account_id(monkeypatch):
     monkeypatch.setattr(lambda_func, "get_account_id", mock_get_account_id)
 
 
-def test_missing_profile_and_no_arn(valid_trust_policy):
-    """Test requirement for an assume_role_arn or AWS profile as input."""
-    with pytest.raises(Exception) as exc:
-        lambda_func.main(
-            aws_profile="",
-            role_name="TEST_IAM_ROLE_MISSING_PROFILE",
-            role_permission_policy="ReadOnlyAccess",
-            trust_policy_json=valid_trust_policy,
-        )
-    assert "One of 'assume-role-arn' or 'aws-profile' is required" in str(exc.value)
-
-
 def test_invalid_trust_policy_json():
     """Test an invalid JSON string for trust_policy_json argument."""
     with pytest.raises(Exception) as exc:
         # JSON string is missing a bracket in the 'Statement' field.
         lambda_func.main(
-            aws_profile="testing",
             role_name="TEST_IAM_ROLE_INVALID_JSON",
             role_permission_policy="ReadOnlyAccess",
             trust_policy_json=(
@@ -156,7 +143,6 @@ def test_invalid_trust_policy_json():
 def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     """Test use of valid arguments for main()."""
     return_code = lambda_func.main(
-        aws_profile="testing",
         role_name="TEST_IAM_ROLE_VALID_ARGS",
         role_permission_policy="ReadOnlyAccess",
         trust_policy_json=valid_trust_policy,

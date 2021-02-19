@@ -148,7 +148,7 @@ def assume_role(
     return role_session
 
 
-def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
+def get_session(assume_role_arn, botocore_cache_dir):
     """Return boto3 session established using a role arn or AWS profile."""
     if assume_role_arn:
         LOG.info({"assumed_role": assume_role_arn})
@@ -158,9 +158,8 @@ def get_session(assume_role_arn, aws_profile, botocore_cache_dir):
             cache_dir=botocore_cache_dir,
         )
         boto = boto3.session.Session(botocore_session=boto)
-    elif aws_profile:
-        LOG.info({"session_profile": aws_profile})
-        boto = boto3.Session(profile_name=aws_profile)
+    else:
+        boto = boto3.session.Session()
     return boto
 
 
@@ -225,7 +224,6 @@ def iam_attach_policy(iam_client, role, role_name, policy_arn):
 
 
 def main(
-    aws_profile,
     role_name,
     role_permission_policy,
     trust_policy_json,
@@ -244,15 +242,8 @@ def main(
             f"'trust-policy-json' contains badly formed JSON: {exc}"
         )
 
-    # Validate that either role arn or an AWS profile was supplied, as one
-    # of them is needed to create a AWS session.
-    if not assume_role_arn and not aws_profile:
-        raise IamRoleInvalidArgumentsError(
-            "One of 'assume-role-arn' or 'aws-profile' is required"
-        )
-
     # Create a session using the role arn or AWS profile.
-    session = get_session(assume_role_arn, aws_profile, botocore_cache_dir)
+    session = get_session(assume_role_arn, botocore_cache_dir)
     iam_resource = session.resource("iam")
     iam_client = session.client("iam")
 
@@ -336,7 +327,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
 
         main(
-            aws_profile=None,
             role_name=role_name,
             role_permission_policy=permission_policy,
             trust_policy_json=trust_policy_json,
@@ -365,10 +355,6 @@ NOTE:  Use the environment variable 'LOG_LEVEL' to set the desired log level
 ('error', 'warning', 'info' or 'debug').  The default level is 'info'.""",
         )
         required_args = parser.add_argument_group("required named arguments")
-        parser.add_argument(
-            "--aws-profile",
-            help="Credentials profile for IAM user for establishing a session",
-        )
         required_args.add_argument(
             "--role-name",
             required=True,
