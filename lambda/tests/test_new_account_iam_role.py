@@ -140,6 +140,17 @@ def test_invalid_trust_policy_json():
     assert "'trust-policy-json' contains badly formed JSON" in str(exc.value)
 
 
+def test_main_func_bad_role_arg(valid_trust_policy):
+    """Invoke main() with a bad role name."""
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+        lambda_func.main(
+            role_name="TEST$MAIN#BADROLE",
+            role_permission_policy="ReadOnlyAccess",
+            trust_policy_json=valid_trust_policy,
+        )
+    assert "Unable to create 'TEST$MAIN#BADROLE' role" in str(exc.value)
+
+
 def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     """Test use of valid arguments for main()."""
     return_code = lambda_func.main(
@@ -221,7 +232,7 @@ def test_lambda_handler_missing_role_name(
     os.unsetenv("ROLE_NAME")
     os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'ROLE_NAME' must provide the name of the "
@@ -241,7 +252,7 @@ def test_lambda_handler_missing_permission_policy(
     os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
     os.unsetenv("PERMISSION_POLICY")
     os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'PERMISSION_POLICY' must provide the "
@@ -260,7 +271,7 @@ def test_lambda_handler_missing_trust_policy_json(
     os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
     os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
     os.unsetenv("TRUST_POLICY_JSON")
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler("mocked_event", lambda_context)
     assert (
         "Environment variable 'TRUST_POLICY_JSON' must be a " "JSON-formatted string"
