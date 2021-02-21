@@ -151,6 +151,19 @@ def test_main_func_bad_role_arg(valid_trust_policy):
     assert "Unable to create 'TEST$MAIN#BADROLE' role" in str(exc.value)
 
 
+def test_main_func_bad_permission_policy_arg(iam_client, valid_trust_policy):
+    """Test use of a bad permission policy argument for main()."""
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+        lambda_func.main(
+            role_name="TEST_IAM_ROLE_INVALID_PERMISSION_POLICY",
+            role_permission_policy="UnknownNotGoodPolicy",
+            trust_policy_json=valid_trust_policy,
+        )
+        assert "Unable to attach 'arn:aws:iam::aws:policy/UnknownNotGoodPolicy'" in str(
+            exc.value
+        )
+
+
 def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     """Test use of valid arguments for main()."""
     return_code = lambda_func.main(
