@@ -289,3 +289,27 @@ def test_lambda_handler_missing_trust_policy_json(
     assert (
         "Environment variable 'TRUST_POLICY_JSON' must be a " "JSON-formatted string"
     ) in str(exc.value)
+
+
+def test_lambda_handler_invalid_permission_policy(
+    lambda_context,
+    sts_client,
+    iam_client,
+    monkeypatch_get_account_id,
+    valid_trust_policy,
+):
+    """Invoke the lambda handler with an invalid permission policy.
+
+    Note:  A bad role name does not generate an exception when an assumed
+    role is provided to obtain credentials.  But a bad permission policy
+    will generate an exception.
+    """
+    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
+    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY"
+    os.environ["PERMISSION_POLICY"] = "BadReadOnlyAccess"
+    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+        lambda_func.lambda_handler("mocked_event", lambda_context)
+    assert "Unable to attach 'arn:aws:iam::aws:policy/BadReadOnlyAccess'" in str(
+        exc.value
+    )
