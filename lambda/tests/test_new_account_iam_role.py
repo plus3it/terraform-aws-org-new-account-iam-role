@@ -140,7 +140,7 @@ def test_invalid_trust_policy_json():
     assert "'trust-policy-json' contains badly formed JSON" in str(exc.value)
 
 
-def test_main_func_bad_role_arg(valid_trust_policy):
+def test_main_func_bad_role_arg(aws_credentials, valid_trust_policy):
     """Invoke main() with a bad role name."""
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.main(
@@ -151,7 +151,7 @@ def test_main_func_bad_role_arg(valid_trust_policy):
     assert "Unable to create 'TEST$MAIN#BADROLE' role" in str(exc.value)
 
 
-def test_main_func_bad_permission_policy_arg(valid_trust_policy):
+def test_main_func_bad_permission_policy_arg(aws_credentials, valid_trust_policy):
     """Test use of a bad permission policy argument for main()."""
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.main(
