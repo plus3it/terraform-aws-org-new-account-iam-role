@@ -108,7 +108,7 @@ def valid_role(iam_client, valid_trust_policy):
     iam_resource = session.resource("iam")
 
     role = lambda_func.iam_create_role(
-        iam_resource, iam_client, "TEST_IAM_ROLE_VALID", valid_trust_policy
+        iam_resource, "TEST_IAM_ROLE_VALID", valid_trust_policy
     )
     return role
 
@@ -151,7 +151,7 @@ def test_main_func_bad_role_arg(valid_trust_policy):
     assert "Unable to create 'TEST$MAIN#BADROLE' role" in str(exc.value)
 
 
-def test_main_func_bad_permission_policy_arg(iam_client, valid_trust_policy):
+def test_main_func_bad_permission_policy_arg(valid_trust_policy):
     """Test use of a bad permission policy argument for main()."""
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.main(
@@ -176,7 +176,7 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     assert "TEST_IAM_ROLE_VALID_ARGS" in roles
 
 
-def test_iam_create_role_func_bad_args(iam_client, valid_trust_policy, caplog):
+def test_iam_create_role_func_bad_args(valid_trust_policy, caplog):
     """Invoke iam_create_role() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
@@ -189,17 +189,17 @@ def test_iam_create_role_func_bad_args(iam_client, valid_trust_policy, caplog):
     # Unable to get a bogus trust policy to fail using mocked boto3.
     # bad_trust_policy = '{"Version": "2012-10-17", "nada": []}'
     # role = lambda_func.iam_create_role(
-    #    iam_resource, iam_client, "TEST_IAM_ROLE_BAD_POLICY", bad_trust_policy)
+    #    iam_resource, "TEST_IAM_ROLE_BAD_POLICY", bad_trust_policy)
 
     # But a bad role name will fail with a mocked call.
     role = lambda_func.iam_create_role(
-        iam_resource, iam_client, "TEST#TRUST&ROLE", valid_trust_policy
+        iam_resource, "TEST#TRUST&ROLE", valid_trust_policy
     )
     assert not role
     assert "Unable to create role" in caplog.text
 
 
-def test_iam_attach_policy(iam_client, valid_role, caplog):
+def test_iam_attach_policy(valid_role, caplog):
     """Invoke iam_attach_policy() with bad arguments.
 
     This could be tested through a call to main() versus calling
@@ -208,7 +208,7 @@ def test_iam_attach_policy(iam_client, valid_role, caplog):
     """
     policy_arn = "arn:aws:iam::aws:policy/NotAwsManagedPolicy"
     is_success = lambda_func.iam_attach_policy(
-        iam_client, valid_role, "TEST_IAM_ROLE_BAD_POLICY_NAME", policy_arn
+        valid_role, "TEST_IAM_ROLE_BAD_POLICY_NAME", policy_arn
     )
     assert not is_success
     assert "Unable to attach policy" in caplog.text

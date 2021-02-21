@@ -163,24 +163,18 @@ def get_session(assume_role_arn, botocore_cache_dir):
     return boto
 
 
-def iam_add_role_description(iam_client, role_name):
-    """Add a role description with timestamp and program filename."""
-    description = (
-        f"This role was updated {datetime.datetime.now()} by "
-        f"{os.path.basename(__file__)}"
-    )
-    iam_client.update_role_description(RoleName=role_name, Description=description)
-
-
-def iam_create_role(iam_resource, iam_client, role_name, trust_policy_json):
+def iam_create_role(iam_resource, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
     LOG.info({"role_name": role_name, "trust_policy": trust_policy_json})
     try:
         role = iam_resource.create_role(
-            RoleName=role_name, AssumeRolePolicyDocument=trust_policy_json
+            RoleName=role_name,
+            AssumeRolePolicyDocument=trust_policy_json,
+            Description=(
+                f"This role was updated {datetime.datetime.now()} by "
+                f"{os.path.basename(__file__)}"
+            ),
         )
-        iam_add_role_description(iam_client, role_name)
-        role.reload()
     except (
         botocore.exceptions.ClientError,
         botocore.exceptions.ParamValidationError,
@@ -197,14 +191,12 @@ def iam_create_role(iam_resource, iam_client, role_name, trust_policy_json):
     return role
 
 
-def iam_attach_policy(iam_client, role, role_name, policy_arn):
+def iam_attach_policy(role, role_name, policy_arn):
     """Return True if permission policy can be attached, else False."""
     LOG.info({"role_name": role_name, "aws_managed_policy": policy_arn})
     is_success = True
     try:
         role.attach_policy(PolicyArn=policy_arn)
-        iam_add_role_description(iam_client, role_name)
-        role.reload()
     except (
         botocore.exceptions.ClientError,
         botocore.exceptions.ParamValidationError,
@@ -245,17 +237,16 @@ def main(
     # Create a session using the role arn or AWS profile.
     session = get_session(assume_role_arn, botocore_cache_dir)
     iam_resource = session.resource("iam")
-    iam_client = session.client("iam")
 
     # Create a role using the role name and assign it an assumed trust policy
     # with the user-supplied JSON.
-    role = iam_create_role(iam_resource, iam_client, role_name, trust_policy_json)
+    role = iam_create_role(iam_resource, role_name, trust_policy_json)
     if not role:
         raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
     # Attach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
-    if not iam_attach_policy(iam_client, role, role_name, policy_arn):
+    if not iam_attach_policy(role, role_name, policy_arn):
         raise IamRoleInvalidArgumentsError(
             f"Unable to attach '{policy_arn}' to {role_name}."
         )
