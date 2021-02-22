@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 **Commit Delta**: N/A
 
-**Released**: 2021.02.08
+**Released**: 2021.02.22
 
 **Summary**:
 
