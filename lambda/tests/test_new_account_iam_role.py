@@ -9,6 +9,7 @@ basic as well:
 """
 import json
 import os
+import uuid
 
 import pytest
 from moto import mock_iam
@@ -35,7 +36,7 @@ def lambda_context():
             self.invoked_function_arn = (
                 f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:test"
             )
-            self.aws_request_id = "52fdfc07-2182-154f-163f-5f0f9a621d72"
+            self.aws_request_id = str(uuid.uuid4())
 
     return LambdaContext()
 
