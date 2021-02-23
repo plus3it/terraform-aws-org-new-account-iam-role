@@ -8,7 +8,7 @@ pull_request_rules:
       review:
         type: APPROVE
 
-  - name: automatic merge dependabot pull requests
+  - name: automatic merge for dependabot pull requests
     conditions:
       - author~=dependabot\[bot\]|dependabot-preview\[bot\]
       - "#approved-reviews-by>=1"
