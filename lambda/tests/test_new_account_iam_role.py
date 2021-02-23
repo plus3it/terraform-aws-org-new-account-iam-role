@@ -173,8 +173,27 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
         trust_policy_json=valid_trust_policy,
     )
     assert return_code == 0
+
+    # Check for role.
     roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
     assert "TEST_IAM_ROLE_VALID_ARGS" in roles
+
+    # Check for attached policy.
+    policies = iam_client.list_attached_role_policies(
+        RoleName="TEST_IAM_ROLE_VALID_ARGS"
+    )
+    assert "AttachedPolicies" in policies
+    assert "ReadOnlyAccess" in [x["PolicyName"] for x in policies["AttachedPolicies"]]
+
+    # Check for assume role trust policy.
+    role_info = iam_client.get_role(RoleName="TEST_IAM_ROLE_VALID_ARGS")
+    assert "AssumeRolePolicyDocument" in role_info["Role"]
+
+    expected_trust_statement = json.loads(valid_trust_policy)["Statement"][0]
+    trust_statement = role_info["Role"]["AssumeRolePolicyDocument"]["Statement"][0]
+    assert trust_statement["Action"] == expected_trust_statement["Action"]
+    assert trust_statement["Principal"] == expected_trust_statement["Principal"]
+    assert trust_statement["Effect"] == expected_trust_statement["Effect"]
 
 
 def test_iam_create_role_func_bad_args(valid_trust_policy, caplog):
@@ -230,8 +249,27 @@ def test_lambda_handler_valid_arguments(
     # The lambda function doesn't return anything, but will generate
     # an exception for failure.  So returning nothing is considered success.
     assert not lambda_func.lambda_handler("mocked_event", lambda_context)
+
+    # Check for role.
     roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
     assert "TEST_IAM_ROLE_VALID_EVENT_ARGS" in roles
+
+    # Check for attached policy.
+    policies = iam_client.list_attached_role_policies(
+        RoleName="TEST_IAM_ROLE_VALID_EVENT_ARGS"
+    )
+    assert "AttachedPolicies" in policies
+    assert "ReadOnlyAccess" in [x["PolicyName"] for x in policies["AttachedPolicies"]]
+
+    # Check for assume role trust policy.
+    role_info = iam_client.get_role(RoleName="TEST_IAM_ROLE_VALID_EVENT_ARGS")
+    assert "AssumeRolePolicyDocument" in role_info["Role"]
+
+    expected_trust_statement = json.loads(valid_trust_policy)["Statement"][0]
+    trust_statement = role_info["Role"]["AssumeRolePolicyDocument"]["Statement"][0]
+    assert trust_statement["Action"] == expected_trust_statement["Action"]
+    assert trust_statement["Principal"] == expected_trust_statement["Principal"]
+    assert trust_statement["Effect"] == expected_trust_statement["Effect"]
 
 
 def test_lambda_handler_missing_role_name(
