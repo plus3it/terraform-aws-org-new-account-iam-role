@@ -1,8 +1,5 @@
 dist: bionic
 
-node_js:
-  - "12"
-
 stages:
   - lint
   - test
@@ -10,26 +7,30 @@ stages:
 
 if: branch = master OR type = pull_request
 
+stage: test
+
+name: Project Unit Testing
+
+language: python
+
+python:
+  - "3.6"
+  - "3.7"
+  - "3.8"
+  - "3.9"
+
+install: skip
+
+script: make docker/run target=python/test
+
 jobs:
   include:
     - stage: lint
       name: Project Syntax Verification
       script:
         - make docker/run target=lint
-    - stage: test
-      name: Project Unit Testing
-      language: python
-      python:
-        - "3.6"
-        - "3.7"
-        - "3.8"
-        - "3.9"
-      install: skip
-      script:
-        - make docker/run target=python/test
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
-      language: node_js
       before_script:
         - |
           PRIOR_VERSION=$(git describe --abbrev=0 --tags)
@@ -43,7 +44,7 @@ jobs:
       deploy:
         provider: releases
         api_key:
-          secure:
+          secure: ZAqybnZivV40iVEAU5qYsQD2fFoDdwkbHpQwxya6IPyCkt6dUlY46xio4gjl18a2PQ+gUV/uZB72f2OOHSnwIkzPQkSXOc+DMSkYzDuBfmvTChZZ9lTVt4gyh6NoAkIIJquHP36JotacvO/dkVNaORc5zMxm+UCc28fB8QjCIc9cMuI9kpHGtza4qvGLCKs7EGMbSTvrffiUSiY2Vwm/HBK2VwU9C48TxC100PDo09JjXvIYEzfICuhR+3u7igmIWrHtMoNJ/r540tEsJD8XUrXSdO18DpqEIFd7J2qEMifN7kmP+Y8zxW2U4jx1bYHCy14uhNWBHE2mgjrcMbgS7TLcMi6UUlekDIYxWq7NHmf9n1YFGMfBhDXGiI/LgglGM9RzgXXk6jC1ptQAb1tUIWHc2294j53fEkecoIifq/zD4aqZ0/O9jj74vCF2NhcOKiZchsXuUDRPg3Vc/PJAC4taehgPr2ift4R7jOSSAMRQV4Gznc7FkwAWs9PCyCQQ3IJ0+qPxawcqz7iSXENb1ZZLaNf0hcD1CtyRQ/7oDKGwfNcn0Q6TQeCSBy85QTtclTwCurHrJ7Ct7egIzU3dHWuwOdx4URghJzothC+r8cQj0nvZuH4gkD8TUpHU82CKpdx9sh0ArRkKaFf41xHvKJFBoQ6HyxTHw3SzpuhFAbI=
         name: $RELEASE_VERSION
         body: $RELEASE_BODY
         tag_name: $RELEASE_VERSION
