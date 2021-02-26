@@ -21,7 +21,7 @@ python:
 
 install: skip
 
-script: 
+script:
   - |
     make docker/run target=python/test
     make docker/run target=terraform/pytest
