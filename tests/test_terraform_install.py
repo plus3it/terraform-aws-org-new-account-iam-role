@@ -7,6 +7,7 @@ the tests are complete.
 import json
 import os
 from pathlib import Path
+import uuid
 
 import pytest
 import tftest
@@ -120,6 +121,14 @@ def test_lambda_invocation(tf_output):
     # raised, which should prove the lambda and the AWS powertools library.
     # (The AWS powertools library is invoked to log exceptions.)
     event = {
+        "version": "0",
+        "id": str(uuid.uuid4()),
+        "detail-type": "AWS API Call via CloudTrail",
+        "source": "aws.organizations",
+        "account": "222222222222",
+        "time": "2021-02-08T16:08:43Z",
+        "region": "us-east-1",
+        "resources": [],
         "detail": {
             "eventName": "CreateAccount",
             "eventSource": "organizations.amazonaws.com",
@@ -129,8 +138,6 @@ def test_lambda_invocation(tf_output):
                 }
             },
         },
-        "detail-type": "AWS API Call via CloudTrail",
-        "source": "aws.organizations",
     }
     lambda_client = boto3.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
