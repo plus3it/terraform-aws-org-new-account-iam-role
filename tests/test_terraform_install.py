@@ -16,6 +16,8 @@ import boto3
 
 
 AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
+
+FAKE_ACCOUNT_ID = "123456789012"
 NEW_ROLE_NAME = "TEST_NEW_ACCOUNT_IAM_ROLE"
 MANAGED_POLICY = "ReadOnlyAccess"
 
@@ -37,21 +39,14 @@ def config_path():
 
 
 @pytest.fixture(scope="module")
-def account_id():
-    """Return the account ID for the user running this test."""
-    sts_client = boto3.client("sts")
-    return sts_client.get_caller_identity()["Account"]
-
-
-@pytest.fixture(scope="module")
-def valid_trust_policy(account_id):
+def valid_trust_policy():
     """Return a valid JSON policy for use in testing."""
     valid_json = {
         "Version": "2012-10-17",
         "Statement": [
             {
                 "Action": "sts:AssumeRole",
-                "Principal": {"AWS": f"arn:aws:iam::{account_id}:root"},
+                "Principal": {"AWS": f"arn:aws:iam::{FAKE_ACCOUNT_ID}:root"},
                 "Effect": "Allow",
             }
         ],
@@ -60,7 +55,7 @@ def valid_trust_policy(account_id):
 
 
 @pytest.fixture(scope="module")
-def tf_output(config_path, account_id, valid_trust_policy):
+def tf_output(config_path, valid_trust_policy):
     """Return the output after applying the Terraform configuration.
 
     Note:  the scope for this pytest fixture is "module", so this will only
@@ -74,7 +69,7 @@ def tf_output(config_path, account_id, valid_trust_policy):
     tf_test = tftest.TerraformTest(config_path, basedir=None, env=None)
     tf_test.setup()
     tf_vars = {
-        "assume_role_name": account_id,
+        "assume_role_name": FAKE_ACCOUNT_ID,
         "role_name": NEW_ROLE_NAME,
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
