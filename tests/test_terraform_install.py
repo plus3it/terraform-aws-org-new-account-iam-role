@@ -97,6 +97,15 @@ def test_outputs(tf_output):
     lambda_module = tf_output["lambda"]
     assert lambda_module["function_name"].startswith("new_account_iam_role")
 
+    event_rule_output = tf_output["aws_cloudwatch_event_rule"]
+    assert event_rule_output["name"].startswith("new_account_iam_role")
+
+    event_target_output = tf_output["aws_cloudwatch_event_target"]
+    assert event_target_output["rule"].startswith("new_account_iam_role")
+
+    permission_events_output = tf_output["aws_lambda_permission_events"]
+    assert permission_events_output["function_name"].startswith("new_account_iam_role")
+
 
 def test_lambda_dry_run(tf_output):
     """Verify a dry run of the lambda is successful."""

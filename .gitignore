@@ -21,3 +21,4 @@ tests/go.*
 
 # python cache
 __pycache__
+.python-version
