@@ -58,9 +58,9 @@ func createPolicy(t *testing.T) string {
 	{
 		"Version": "2012-10-17",
 		"Statement": [{
-			"Effect": "Allow"
+			"Effect": "Allow",
 			"Principal": {"AWS": "arn:aws:iam::000000000000:root"},
-			"Action": "sts:AssumeRole",
+			"Action": "sts:AssumeRole"
 		}]
 	}`
 
