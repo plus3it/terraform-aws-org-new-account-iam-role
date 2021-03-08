@@ -14,20 +14,20 @@ import (
 // AwsRegion represents a testable AWS region.
 const AwsRegion = "us-east-1"
 
-// AssumeRoleName is used for one of the required Lambda variables
-// (assume_role_name) and represents the target account for the IAM role.
+// AssumeRoleName is used for the required Lambda variable, assume_role_name,
+// which represents the target account for the IAM role.
 const AssumeRoleName = "000000000000"
 
-// RoleName is used for one of the required Lambda variables (role_name)
-// and represents a role created by the Lambda.
+// RoleName is used for the required Lambda variable, role_name, which
+// represents a role created by the Lambda.
 const RoleName = "TEST_NEW_ACCOUNT_IAM_ROLE"
 
-// RolePermissionPolicy is one of the required Lambda variables
-// (role_permission_policy) and represents an AWS-managed permission policy
+// RolePermissionPolicy is used for the required Lambda variable,
+// role_permission_policy, which represents an AWS-managed permission policy
 // name to attach to the role.
 const RolePermissionPolicy = "ReadOnlyAccess"
 
-// LocalEndpoints provide LocalStack endpoints for AWS services required for
+// LocalEndpoints provide LocalStack endpoints for AWS services required by
 // the installation.
 var LocalEndpoints = map[string]string{
 	"cloudwatch":       "http://localhost:4566",
@@ -38,8 +38,9 @@ var LocalEndpoints = map[string]string{
 	"sts":              "http://localhost:4566",
 }
 
-// Policy represents the structure of a simple policy used by one of the
-// required Lambda variables (trust_policy_json).
+// Policy is used for the required Lambda variable, trust_policy_json.  This
+// is a simple policy for testing purposes and does not represent a policy
+// used for a trust relationship.
 type Policy struct {
 	Version   string `json:"Version"`
 	Statement []struct {
@@ -51,15 +52,15 @@ type Policy struct {
 	} `json:"Statement"`
 }
 
-// createPolicy generates a simple policy in a JSON-formatted string.
+// createPolicy returns a simple test policy as a JSON-formatted string.
 func createPolicy(t *testing.T) string {
 	policyString := `
 	{
 		"Version": "2012-10-17",
 		"Statement": [{
-			"Action": "sts:AssumeRole",
-			"Principal": {"AWS": "arn:aws:iam::000000000000:root"},
 			"Effect": "Allow"
+			"Principal": {"AWS": "arn:aws:iam::000000000000:root"},
+			"Action": "sts:AssumeRole",
 		}]
 	}`
 
@@ -82,7 +83,7 @@ func createPolicy(t *testing.T) string {
 }
 
 // TestNewIamRole invokes the Terrform init/plan/apply commands and
-// verifies the resulting output.  The Lambda is also invoked to verify
+// verifies the resulting output.  The Lambda is invoked to verify
 // the installation.
 func TestNewIamRole(t *testing.T) {
 	t.Parallel()
@@ -200,8 +201,8 @@ func createEvent(t *testing.T) *Event {
 // validateExecution attempts to invoke the Lambda with a bad event.  The
 // Lambda should return the expected exception type and message.  The
 // expected exception should prove that the Lambda and the AWS powertools
-// library have been installed.  (The AWS powertools library is invoked to
-// log exceptions.)
+// library have been installed as the AWS powertools library is invoked to
+// log exceptions.
 func validateExecution(t *testing.T, functionName string) {
 	event := createEvent(t)
 	response, err := aws.InvokeFunctionE(t, AwsRegion, functionName, event)
