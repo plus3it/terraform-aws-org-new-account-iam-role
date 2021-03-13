@@ -21,10 +21,10 @@ python:
 
 install: skip
 
-script: 
-   - |
-     make docker/run target=python/test
-     make docker/run target=localstack/pytest
+script:
+  - |
+    make docker/run target=python/test
+    make docker/run target=localstack/pytest
 
 jobs:
   include:
