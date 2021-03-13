@@ -13,6 +13,10 @@ name: Project Tests
 
 language: python
 
+services:
+  - docker
+  - docker-compose
+
 python:
   - "3.6"
   - "3.7"
