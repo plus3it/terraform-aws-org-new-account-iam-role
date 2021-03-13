@@ -76,9 +76,7 @@ def tf_output(config_path, valid_trust_policy):
 
     # Use LocalStack to simulate the AWS stack.  "localstack.tf" contains
     # the endpoints and services information needed by LocalStack.
-    tf_test.setup(
-        extra_files=[str(Path(Path.cwd() / "tests" / "localstack.tf"))]
-    )
+    tf_test.setup(extra_files=[str(Path(Path.cwd() / "tests" / "localstack.tf"))])
 
     tf_vars = {
         "assume_role_name": FAKE_ACCOUNT_ID,

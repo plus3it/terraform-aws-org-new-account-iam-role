@@ -21,8 +21,20 @@ python/test:
 
 terraform/pytest: | guard/program/terraform guard/program/pytest
 	@ echo "[$@] Starting test of Terraform lambda installation"
-	@ echo "[$@] Terraform 'apply' command is slow ... be patient"
+	@ echo "[$@] Terraform 'apply' command is slow ... be patient !!!"
 	pytest tests
+	@ echo "[$@]: Completed successfully!"
+
+localstack/pytest: | guard/program/terraform guard/program/pytest
+	@ echo "[$@] Setting up network used by LocalStack, starting LocalStack"
+	@ docker network create localstack
+	@ docker-compose -f tests/docker-compose-localstack.yml up --detach
+	@ echo "[$@] Running Terraform tests against LocalStack"
+	@ DOCKER_RUN_FLAGS="--network host --rm" \
+		$(MAKE) docker/run target=terraform/pytest
+	@ echo "[$@] Stopping, removing LocalStack container and network"
+	@ docker-compose -f tests/docker-compose-localstack.yml down --rmi all
+	@ docker network rm localstack
 	@ echo "[$@]: Completed successfully!"
 
 .PHONY: python/deps python/test terraform/pytest

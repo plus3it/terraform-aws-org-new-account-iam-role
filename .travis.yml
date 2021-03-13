@@ -9,7 +9,7 @@ if: branch = master OR type = pull_request
 
 stage: test
 
-name: Project Unit Testing
+name: Project Tests
 
 language: python
 
@@ -21,7 +21,10 @@ python:
 
 install: skip
 
-script: make docker/run target=python/test
+script: 
+   - |
+     make docker/run target=python/test
+     make docker/run target=localstack/pytest
 
 jobs:
   include:
