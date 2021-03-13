@@ -73,13 +73,20 @@ def tf_output(config_path, valid_trust_policy):
     os.environ["AWS_DEFAULT_REGION"] = AWS_DEFAULT_REGION
 
     tf_test = tftest.TerraformTest(config_path, basedir=None, env=None)
-    tf_test.setup()
+
+    # Use LocalStack to simulate the AWS stack.  "localstack.tf" contains
+    # the endpoints and services information needed by LocalStack.
+    tf_test.setup(
+        extra_files=[str(Path(Path.cwd() / "tests" / "localstack.tf"))]
+    )
+
     tf_vars = {
         "assume_role_name": FAKE_ACCOUNT_ID,
         "role_name": NEW_ROLE_NAME,
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
     }
+
     try:
         tf_test.apply(tf_vars=tf_vars)
     except tftest.TerraformTestError as exc:
