@@ -13,10 +13,6 @@ name: Project Tests
 
 language: python
 
-services:
-  - docker
-  - docker-compose
-
 python:
   - "3.6"
   - "3.7"
@@ -28,7 +24,9 @@ install: skip
 script:
   - |
     make docker/run target=python/test
-    make docker/run target=localstack/pytest
+    make localstack/up
+    make localstack/pytest
+    make localstack/clean
 
 jobs:
   include:

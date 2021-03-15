@@ -9,32 +9,44 @@ pytest/install:
 		-r lambda/tests/requirements_dev.txt \
 		-r tests/requirements_test.txt
 
+.PHONY: python/deps
 python/deps:
 	@ echo "[$@] Installing package dependencies"
 	@ python -m pip install -r lambda/src/requirements.txt
 
+.PHONY: python/test
 python/test: | guard/program/pytest
 python/test:
 	@ echo "[$@] Starting Python tests"
 	pytest lambda/tests
 	@ echo "[$@]: Tests executed!"
 
+.PHONY: terraform/pytest
 terraform/pytest: | guard/program/terraform guard/program/pytest
 	@ echo "[$@] Starting test of Terraform lambda installation"
 	@ echo "[$@] Terraform 'apply' command is slow ... be patient !!!"
 	pytest tests
 	@ echo "[$@]: Completed successfully!"
 
+.PHONY: localstack/pytest localstack/up localstack/down localstack/clean
 localstack/pytest: | guard/program/terraform guard/program/pytest
-	@ echo "[$@] Setting up network used by LocalStack, starting LocalStack"
-	@ docker network create localstack
-	@ docker-compose -f tests/docker-compose-localstack.yml up --detach
 	@ echo "[$@] Running Terraform tests against LocalStack"
-	@ DOCKER_RUN_FLAGS="--network host --rm" \
+	DOCKER_RUN_FLAGS="--network host --rm" \
 		$(MAKE) docker/run target=terraform/pytest
-	@ echo "[$@] Stopping, removing LocalStack container and network"
-	@ docker-compose -f tests/docker-compose-localstack.yml down --rmi all
-	@ docker network rm localstack
 	@ echo "[$@]: Completed successfully!"
 
-.PHONY: python/deps python/test terraform/pytest
+localstack/up: | guard/program/terraform guard/program/pytest
+	@ echo "[$@] Starting LocalStack"
+	docker-compose -f tests/docker-compose-localstack.yml up --detach
+
+localstack/down: | guard/program/terraform guard/program/pytest
+	@ echo "[$@] Stopping and removing LocalStack container"
+	docker-compose -f tests/docker-compose-localstack.yml down --rm all
+
+localstack/clean:
+	@ echo "[$@] Stopping and removing LocalStack container and images"
+	@ $(MAKE) localstack/down
+	docker images | grep lambci | awk '{print $$1 ":" $$2}' | \
+		xargs docker rmi
+	docker images | grep new-account-iam-role | \
+		awk '{print $$1 ":" $$2}' | xargs docker rmi

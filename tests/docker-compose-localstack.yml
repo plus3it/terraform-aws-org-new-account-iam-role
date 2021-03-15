@@ -11,8 +11,3 @@ services:
       - SERVICES=cloudwatch,events,lambda,iam,sts
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
-
-networks:
-  default:
-    external:
-      name: "localstack"
