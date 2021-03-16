@@ -26,12 +26,12 @@ MANAGED_POLICY = "ReadOnlyAccess"
 def config_path():
     """Find the location of 'main.tf' in current dir or a parent dir."""
     current_dir = Path.cwd()
-    if Path(current_dir / "main.tf").exists():
+    if list(Path(current_dir).glob("*.tf")):
         return str(current_dir)
 
     # Recurse upwards until the Terraform config file is found.
     for parent in current_dir.parents:
-        if Path(parent / "main.tf").exists():
+        if list(Path(parent).glob("*.tf")):
             return str(parent)
 
     pytest.exit(msg="Unable to find Terraform config file 'main.tf", returncode=1)
@@ -132,9 +132,10 @@ def test_lambda_dry_run(tf_output, localstack_session):
 def test_lambda_invocation(tf_output, localstack_session):
     """Verify a role was created with the expected policies."""
     # The following event does not have a valid ID, so the lambda invocation
-    # will fail.  However, when it fails, an InvalidInputException should be
-    # raised, which should prove the lambda and the AWS powertools library.
-    # (The AWS powertools library is invoked to log exceptions.)
+    # will fail.  However, when it fails, an InvocationException (or
+    # InvalidInputException when using AWS) should be raised.  This proves
+    # the lambda and the AWS powertools library are installed.  (The AWS
+    # powertools library is invoked to log exceptions.)
     event = {
         "version": "0",
         "id": str(uuid.uuid4()),
@@ -167,8 +168,8 @@ def test_lambda_invocation(tf_output, localstack_session):
     assert response_payload
     assert "errorType" in response_payload
     # The errorType will differ depending on whether the LocalStack is used
-    # or not.  For LocalStack, the errorType is InvocationException.
-    # assert response_payload["errorType"] == "InvalidInputException"
+    # or not.  For LocalStack, the errorType is InvocationException.  For
+    # AWS, the errorType is InvalidInputException.
     assert response_payload["errorType"] == "InvocationException"
 
     # The error message should indicate that DescribeCreateAccountStatus()
