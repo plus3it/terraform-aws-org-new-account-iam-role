@@ -2,6 +2,8 @@ package testing
 
 import (
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -37,6 +39,10 @@ var LocalEndpoints = map[string]string{
 	"iam":              "http://localhost:4566",
 	"sts":              "http://localhost:4566",
 }
+
+// LocalStackTfConfig is the name of Terraform config file required for
+// LocalStack.
+const LocalStackTfConfig = "localstack.tf"
 
 // Policy is used for the required Lambda variable, trust_policy_json.  This
 // is a simple policy for testing purposes and does not represent a policy
@@ -91,6 +97,20 @@ func TestNewIamRole(t *testing.T) {
 	// Use LocalStack endpoints.
 	aws.SetAwsEndpointsOverrides(LocalEndpoints)
 
+	// "localstack.tf" contains the endpoints and services information
+	// needed for Terraform.  Symbolically link "localstack.tf" to the
+	// Terraform root configuration to ensure we can work with LocalStack.
+	path, err := os.Getwd()
+	require.Nil(t, err)
+
+	// This is a bit ugly because this test is run from the "tests"
+	// directory, not the directory where the Makefile is found.
+	destPath := filepath.Join(path, "..", LocalStackTfConfig)
+	srcPath := filepath.Join(path, LocalStackTfConfig)
+	err = os.Symlink(srcPath, destPath)
+	require.Nil(t, err)
+	defer os.Remove(destPath)
+
 	terraformOptions := &terraform.Options{
 		TerraformDir: "../",
 		Vars: map[string]interface{}{
@@ -103,7 +123,6 @@ func TestNewIamRole(t *testing.T) {
 			"AWS_DEFAULT_REGION": AwsRegion,
 		},
 	}
-
 	defer terraform.Destroy(t, terraformOptions)
 	terraform.InitAndApply(t, terraformOptions)
 
@@ -111,17 +130,17 @@ func TestNewIamRole(t *testing.T) {
 
 	// Extract the Lambda function name as that will be needed for
 	// verifying the output and invoking the function.
-	lambda_output := terraform.OutputMap(t, terraformOptions, "lambda")
-	assert.NotNil(t, lambda_output)
+	lambdaOutput := terraform.OutputMap(t, terraformOptions, "lambda")
+	assert.NotNil(t, lambdaOutput)
 
-	validateExecution(t, lambda_output["function_name"])
+	validateExecution(t, lambdaOutput["function_name"])
 }
 
 // validateOutput verifies that at least one field of each of the resource
 // outputs match the expected value.
 func validateOutput(t *testing.T, terraformOptions *terraform.Options) {
-	lambda_output := terraform.OutputMap(t, terraformOptions, "lambda")
-	assert.True(t, strings.HasPrefix(lambda_output["function_name"],
+	lambdaOutput := terraform.OutputMap(t, terraformOptions, "lambda")
+	assert.True(t, strings.HasPrefix(lambdaOutput["function_name"],
 		"new_account_iam_role"))
 
 	event_rule_output := terraform.OutputMap(t, terraformOptions,
@@ -220,9 +239,7 @@ func validateExecution(t *testing.T, functionName string) {
 	}
 	var rsp responseMessage
 	err = json.Unmarshal([]byte(response), &rsp)
-	if err != nil {
-		require.Nil(t, err)
-	}
+	require.Nil(t, err)
 
 	assert.NotNil(t, rsp.ErrorType)
 	assert.Equal(t, rsp.ErrorType, "InvocationException")
