@@ -7,11 +7,6 @@ locals {
   name = "new_account_iam_role_${random_string.id.result}"
 }
 
-resource "random_string" "id" {
-  length  = 13
-  special = false
-}
-
 module "lambda" {
   source = "git::https://github.com/plus3it/terraform-aws-lambda.git?ref=v1.2.0"
 
@@ -31,6 +26,11 @@ module "lambda" {
       LOG_LEVEL         = var.log_level
     }
   }
+}
+
+resource "random_string" "id" {
+  length  = 13
+  special = false
 }
 
 resource "aws_cloudwatch_event_rule" "this" {
