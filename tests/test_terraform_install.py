@@ -87,13 +87,13 @@ def tf_output(config_path, valid_trust_policy):
 
     try:
         tf_test.apply(tf_vars=tf_vars)
+        yield tf_test.output(json_format=True)
     except tftest.TerraformTestError as exc:
-        tf_test.destroy(tf_vars=tf_vars)
         pytest.exit(
             msg=f"Catastropic error running Terraform 'apply':  {exc}", returncode=1
         )
-    yield tf_test.output(json_format=True)
-    tf_test.destroy(tf_vars=tf_vars)
+    finally:
+        tf_test.destroy(tf_vars=tf_vars)
 
 
 def test_outputs(tf_output):
