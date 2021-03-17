@@ -1,3 +1,5 @@
+// Package testing provides integration testing of the Terraform
+// configuration files.
 package testing
 
 import (
@@ -88,12 +90,23 @@ func createPolicy(t *testing.T) string {
 	return string(bytes)
 }
 
-// TestNewIamRole invokes the Terrform init/plan/apply commands and
-// verifies the resulting output.  The Lambda is invoked to verify
-// the installation.
-func TestNewIamRole(t *testing.T) {
-	t.Parallel()
+// terraformRootDir locates the root Terrform configuration directory.
+func terraformRootDir(t *testing.T) (string, bool) {
+	path, err := os.Getwd()
+	require.Nil(t, err)
 
+	for path = filepath.Dir(path); path != "/"; path = filepath.Dir(path) {
+		files, _ := filepath.Glob(filepath.Join(path, "*.tf"))
+		if len(files) > 0 {
+			return path, true
+		}
+	}
+	return "", false
+}
+
+// localStackConfig sets up the LocalStack endpoints and a symbolic link
+// from the LocalStack-specific config file to the Terraform root dir.
+func localStackConfig(t *testing.T) string {
 	// Use LocalStack endpoints.
 	aws.SetAwsEndpointsOverrides(LocalEndpoints)
 
@@ -103,13 +116,27 @@ func TestNewIamRole(t *testing.T) {
 	path, err := os.Getwd()
 	require.Nil(t, err)
 
-	// This is a bit ugly because this test is run from the "tests"
-	// directory, not the directory where the Makefile is found.
-	destPath := filepath.Join(path, "..", LocalStackTfConfig)
-	srcPath := filepath.Join(path, LocalStackTfConfig)
-	err = os.Symlink(srcPath, destPath)
+	rootPath, ok := terraformRootDir(t)
+	require.True(t, ok)
+
+	localPath := filepath.Join(path, LocalStackTfConfig)
+	rootPath = filepath.Join(rootPath, LocalStackTfConfig)
+	err = os.Symlink(localPath, rootPath)
 	require.Nil(t, err)
-	defer os.Remove(destPath)
+
+	return rootPath
+}
+
+// TestNewIamRole invokes the Terrform init/plan/apply commands and
+// verifies the resulting output.  The Lambda is invoked to verify
+// the installation.
+func TestNewIamRole(t *testing.T) {
+	t.Parallel()
+
+	// Remove the symbolic link to the localstack.tf file when the
+	// test completes.
+	configFile := localStackConfig(t)
+	defer os.Remove(configFile)
 
 	terraformOptions := &terraform.Options{
 		TerraformDir: "../",
