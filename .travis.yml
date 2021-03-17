@@ -23,6 +23,7 @@ install: skip
 
 script:
   - |
+    set -e
     make docker/run target=python/test
     make localstack/up
     make localstack/terratest
