@@ -19,11 +19,18 @@ python/test:
 	pytest lambda/tests
 	@ echo "[$@]: Tests executed!"
 
+terraform/terratest: TIMEOUT ?= 20m
+terraform/terratest:| guard/program/terraform guard/program/go
+	@ echo "[$@] Starting Terratest against lambda installation"
+	@ echo "[$@] Terraform 'apply' command is slow ... be patient !!!"
+	cd $(TERRAFORM_TEST_DIR) && go test -count=1 -timeout $(TIMEOUT)
+	@ echo "[$@]: Completed successfully!"
+
 .PHONY: localstack/terratest localstack/up localstack/down localstack/clean
 localstack/terratest: | guard/program/terraform guard/program/go
 	@ echo "[$@] Running Terraform tests against LocalStack"
 	DOCKER_RUN_FLAGS="--network host --rm" \
-		$(MAKE) docker/run target=terratest/test
+		$(MAKE) docker/run target=terraform/terratest
 	@ echo "[$@]: Completed successfully!"
 
 localstack/up: | guard/program/terraform guard/program/pytest
