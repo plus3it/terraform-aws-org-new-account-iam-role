@@ -41,11 +41,10 @@ localstack/up: | guard/program/terraform guard/program/pytest
 
 localstack/down: | guard/program/terraform guard/program/pytest
 	@ echo "[$@] Stopping and removing LocalStack container"
-	docker-compose -f tests/docker-compose-localstack.yml down --rm all
+	docker-compose -f tests/docker-compose-localstack.yml down
 
-localstack/clean:
+localstack/clean: | localstack/down
 	@ echo "[$@] Stopping and removing LocalStack container and images"
-	@ $(MAKE) localstack/down
 	docker images | grep lambci | awk '{print $$1 ":" $$2}' | \
 		xargs docker rmi
 	docker images | grep new-account-iam-role | \
