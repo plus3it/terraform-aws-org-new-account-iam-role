@@ -1,8 +1,10 @@
 """Test Terraform installation of new_account_iam_role.
 
-Creates a new role with an attached managed policy and a trust policy.
-Verifies the role and policies are attached.  Deletes the new role when
-the tests are complete.
+Verifies the Terraform configuration by:
+    - verifying the init/plan and apply are successful,
+    - verifying the Terraform output,
+    - verifying a "dry run" of the lambda is successful,
+    - executing the lambda to verify the libraries are installed.
 """
 import json
 import os
