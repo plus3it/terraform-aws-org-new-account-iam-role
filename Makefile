@@ -45,7 +45,7 @@ localstack/down: | guard/program/terraform guard/program/pytest
 
 localstack/clean: | localstack/down
 	@ echo "[$@] Stopping and removing LocalStack container and images"
-	docker images | grep lambci | awk '{print $$1 ":" $$2}' | \
-		xargs docker rmi
-	docker images | grep new-account-iam-role | \
-		awk '{print $$1 ":" $$2}' | xargs docker rmi
+	set +o pipefail; docker images | grep lambci | \
+		awk '{print $$1 ":" $$2}' | xargs -r docker rmi
+	set +o pipefail; docker images | grep new-account-iam-role | \
+		awk '{print $$1 ":" $$2}' | xargs -r docker rmi
