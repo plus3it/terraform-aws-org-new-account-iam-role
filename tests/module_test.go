@@ -170,20 +170,20 @@ func validateOutput(t *testing.T, terraformOptions *terraform.Options) {
 	assert.True(t, strings.HasPrefix(lambdaOutput["function_name"],
 		"new_account_iam_role"))
 
-	event_rule_output := terraform.OutputMap(t, terraformOptions,
+	eventRuleOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_cloudwatch_event_rule")
-	assert.True(t, strings.HasPrefix(event_rule_output["name"],
+	assert.True(t, strings.HasPrefix(eventRuleOutput["name"],
 		"new_account_iam_role"))
 
-	event_target_output := terraform.OutputMap(t, terraformOptions,
+	eventTargetOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_cloudwatch_event_target")
-	assert.True(t, strings.HasPrefix(event_target_output["rule"],
+	assert.True(t, strings.HasPrefix(eventTargetOutput["rule"],
 		"new_account_iam_role"))
 
-	permission_events_output := terraform.OutputMap(t, terraformOptions,
+	permissionEventsOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_lambda_permission_events")
 	assert.True(t, strings.HasPrefix(
-		permission_events_output["function_name"],
+		permissionEventsOutput["function_name"],
 		"new_account_iam_role"))
 }
 
