@@ -10,6 +10,24 @@ This module uses CloudWatch Events to identify when new accounts are
 added or invited to an AWS Organization, and triggers a Lambda function
 to create the IAM role.
 
+## Testing
+
+To set up and run tests against the Terraform configuration:
+
+```
+# Setup only needed to be performed once:
+make terraform/setup
+
+# Start up LocalStack, a mock AWS stack:
+make localstack/up
+
+# Run the tests:
+make terraform/terratest
+
+# Shut down LocalStack and clean up docker images:
+make localstack/clean
+```
+
 <!-- BEGIN TFDOCS -->
 ## Requirements
 

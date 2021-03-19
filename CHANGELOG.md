@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 **Summary**:
 
-*   Add support for automated testing of Terraform configuration
+*   Add support for automated testing of Terraform configuration.
 
 ### 0.0.0
 

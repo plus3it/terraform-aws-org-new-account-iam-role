@@ -19,6 +19,7 @@ python/test:
 	pytest lambda/tests
 	@ echo "[$@]: Tests executed!"
 
+.PHONY: terraform/terratest
 terraform/terratest: TIMEOUT ?= 20m
 terraform/terratest:| guard/program/terraform guard/program/go
 	@ echo "[$@] Starting Terratest against lambda installation"
@@ -26,11 +27,29 @@ terraform/terratest:| guard/program/terraform guard/program/go
 	cd $(TERRAFORM_TEST_DIR) && go test -count=1 -timeout $(TIMEOUT)
 	@ echo "[$@]: Completed successfully!"
 
+.PHONY: terratest/setup
+terratest/setup:
+	@ echo "[$@] Create go.mod, go.sum files with updated dependencies"
+	cd $(TERRAFORM_TEST_DIR) && rm -f go.mod go.sum
+	cd $(TERRAFORM_TEST_DIR) && go mod init tardigrade-ci/tests
+	cd $(TERRAFORM_TEST_DIR) && go mod tidy
+	cd $(TERRAFORM_TEST_DIR) && go mod edit -replace github.com/gruntwork-io/terratest=github.com/ffernandezcast/terratest@v0.28.6-0.20201201084725-13e8a4c156b8
+	cd $(TERRAFORM_TEST_DIR) && go mod tidy
+	@ echo "[$@]: Completed successfully!"
+
+.PHONY: terratest/docker
+terratest/internal_to_docker:
+	@ echo "[$@] Setup and run the Terratests within docker."
+	$(MAKE) terratest/setup
+	$(MAKE) terraform/terratest
+	@ echo "[$@]: Completed successfully!"
+
 .PHONY: localstack/terratest localstack/up localstack/down localstack/clean
 localstack/terratest: | guard/program/terraform guard/program/go
 	@ echo "[$@] Running Terraform tests against LocalStack"
 	DOCKER_RUN_FLAGS="--network host --rm" \
-		$(MAKE) docker/run target=terraform/terratest
+		TARDIGRADE_CI_DOCKERFILE=docker_integration_tests \
+		$(MAKE) docker/run target=terratest/internal_to_docker
 	@ echo "[$@]: Completed successfully!"
 
 localstack/up: | guard/program/terraform guard/program/pytest
