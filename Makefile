@@ -30,6 +30,7 @@ terraform/terratest:| guard/program/terraform guard/program/go
 .PHONY: terratest/setup
 terratest/setup:
 	@ echo "[$@] Create go.mod, go.sum files with updated dependencies"
+	go version
 	cd $(TERRAFORM_TEST_DIR) && rm -f go.mod go.sum
 	cd $(TERRAFORM_TEST_DIR) && go mod init tardigrade-ci/tests
 	cd $(TERRAFORM_TEST_DIR) && go mod tidy
@@ -47,8 +48,8 @@ terratest/internal_to_docker:
 .PHONY: localstack/terratest localstack/up localstack/down localstack/clean
 localstack/terratest: | guard/program/terraform guard/program/go
 	@ echo "[$@] Running Terraform tests against LocalStack"
-	DOCKER_RUN_FLAGS="--network host --rm" \
-		TARDIGRADE_CI_DOCKERFILE=docker_integration_tests \
+	DOCKER_RUN_FLAGS="--network host --rm -e AWS_ACCESS_KEY_ID='mock_access_key' -e AWS_SECRET_ACCESS_KEY='mock_secret_key'" \
+		TARDIGRADE_CI_DOCKERFILE=Dockerfile_terratest \
 		$(MAKE) docker/run target=terratest/internal_to_docker
 	@ echo "[$@]: Completed successfully!"
 
