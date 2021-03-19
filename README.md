@@ -16,7 +16,7 @@ To set up and run tests against the Terraform configuration:
 
 ```
 # Setup only needed to be performed once:
-make terraform/setup
+make terratest/setup
 
 # Start up LocalStack, a mock AWS stack:
 make localstack/up
