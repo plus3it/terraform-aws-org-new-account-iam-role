@@ -166,25 +166,23 @@ func TestNewIamRole(t *testing.T) {
 // validateOutput verifies that at least one field of each of the resource
 // outputs match the expected value.
 func validateOutput(t *testing.T, terraformOptions *terraform.Options) {
+	prefix := "new_account_iam_role"
+
 	lambdaOutput := terraform.OutputMap(t, terraformOptions, "lambda")
-	assert.True(t, strings.HasPrefix(lambdaOutput["function_name"],
-		"new_account_iam_role"))
+	assert.True(t, strings.HasPrefix(lambdaOutput["function_name"], prefix))
 
 	eventRuleOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_cloudwatch_event_rule")
-	assert.True(t, strings.HasPrefix(eventRuleOutput["name"],
-		"new_account_iam_role"))
+	assert.True(t, strings.HasPrefix(eventRuleOutput["name"], prefix))
 
 	eventTargetOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_cloudwatch_event_target")
-	assert.True(t, strings.HasPrefix(eventTargetOutput["rule"],
-		"new_account_iam_role"))
+	assert.True(t, strings.HasPrefix(eventTargetOutput["rule"], prefix))
 
 	permissionEventsOutput := terraform.OutputMap(t, terraformOptions,
 		"aws_lambda_permission_events")
 	assert.True(t, strings.HasPrefix(
-		permissionEventsOutput["function_name"],
-		"new_account_iam_role"))
+		permissionEventsOutput["function_name"], prefix))
 }
 
 // Event represents the event structure passed to the Lambda handler.
