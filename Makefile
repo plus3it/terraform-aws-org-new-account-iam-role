@@ -38,19 +38,12 @@ terratest/setup:
 	cd $(TERRAFORM_TEST_DIR) && go mod tidy
 	@ echo "[$@]: Completed successfully!"
 
-.PHONY: terratest/docker
-terratest/internal_to_docker:
-	@ echo "[$@] Setup and run the Terratests within docker."
-	$(MAKE) terratest/setup
-	$(MAKE) terraform/terratest
-	@ echo "[$@]: Completed successfully!"
-
 .PHONY: localstack/terratest localstack/up localstack/down localstack/clean
 localstack/terratest: | guard/program/terraform guard/program/go
 	@ echo "[$@] Running Terraform tests against LocalStack"
 	DOCKER_RUN_FLAGS="--network host --rm -e AWS_ACCESS_KEY_ID='mock_access_key' -e AWS_SECRET_ACCESS_KEY='mock_secret_key'" \
 		TARDIGRADE_CI_DOCKERFILE=Dockerfile_terratest \
-		$(MAKE) docker/run target=terratest/internal_to_docker
+		$(MAKE) docker/run target="terratest/setup terraform/terratest"
 	@ echo "[$@]: Completed successfully!"
 
 localstack/up: | guard/program/terraform guard/program/pytest
