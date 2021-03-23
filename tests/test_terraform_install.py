@@ -107,17 +107,20 @@ def test_outputs(tf_output):
         "aws_lambda_permission_events",
         "lambda",
     ]
+
+    prefix = "new_account_iam_role"
+
     lambda_module = tf_output["lambda"]
-    assert lambda_module["function_name"].startswith("new_account_iam_role")
+    assert lambda_module["function_name"].startswith(prefix)
 
     event_rule_output = tf_output["aws_cloudwatch_event_rule"]
-    assert event_rule_output["name"].startswith("new_account_iam_role")
+    assert event_rule_output["name"].startswith(prefix)
 
     event_target_output = tf_output["aws_cloudwatch_event_target"]
-    assert event_target_output["rule"].startswith("new_account_iam_role")
+    assert event_target_output["rule"].startswith(prefix)
 
     permission_events_output = tf_output["aws_lambda_permission_events"]
-    assert permission_events_output["function_name"].startswith("new_account_iam_role")
+    assert permission_events_output["function_name"].startswith(prefix)
 
 
 def test_lambda_dry_run(tf_output, localstack_session):
