@@ -9,7 +9,7 @@ if: branch = master OR type = pull_request
 
 stage: test
 
-name: Project Unit Testing
+name: Project Tests
 
 language: python
 
@@ -21,10 +21,13 @@ python:
 
 install: skip
 
-script: 
+script:
   - |
+    set -e
     make docker/run target=python/test
-    make docker/run target=terraform/pytest
+    make localstack/up
+    make localstack/pytest
+    make localstack/clean
 
 jobs:
   include:

@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 0.0.1
+
+**Commit Delta**: [Change from 0.0.0 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.0.0...0.0.1)
+
+**Released**: 2021.03.15
+
+**Summary**:
+
+*   Add support for automated testing of Terraform configuration
+
 ### 0.0.0
 
 **Commit Delta**: N/A
