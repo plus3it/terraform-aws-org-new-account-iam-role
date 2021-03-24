@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 ### 0.1.0
 
-**Commit Delta**: [Change from 0.0.0 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.0.0...0.0.1)
+**Commit Delta**: [Change from 0.0.0 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.0.0...0.1.0)
 
 **Released**: 2021.03.24
 
