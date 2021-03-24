@@ -15,7 +15,7 @@ variable "trust_policy_json" {
   type        = string
 }
 variable "log_level" {
-  default     = "Info"
+  default     = "info"
   description = "Log level of the lambda output, one of: debug, info, warning, error, critical"
   type        = string
 }
