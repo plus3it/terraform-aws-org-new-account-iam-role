@@ -73,7 +73,11 @@ def get_account_id(event):
         "CreateGovCloudAccount": get_new_account_id,
         "InviteAccountToOrganization": get_invite_account_id,
     }
-    return get_account_id_strategy[event_name](event)
+    try:
+        account_id = get_account_id_strategy[event_name](event)
+    except (botocore.exceptions.ClientError, AccountCreationFailedError) as err:
+        raise AccountCreationFailedError(err) from err
+    return account_id
 
 
 def get_partition():
@@ -315,8 +319,15 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     try:
         account_id = get_account_id(event)
         partition = get_partition()
-        role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
+    except AccountCreationFailedError as account_err:
+        LOG.error({"failure": account_err})
+        raise
+    except Exception:
+        LOG.exception("Unexpected, unknown exception in account logic")
+        raise
 
+    role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
+    try:
         main(
             role_name=role_name,
             role_permission_policy=permission_policy,
@@ -325,11 +336,11 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
             partition=partition,
             botocore_cache_dir=botocore_cache_dir,
         )
-    except (IamRoleInvalidArgumentsError, AccountCreationFailedError) as err:
+    except IamRoleInvalidArgumentsError as err:
         LOG.error({"failure": err})
         raise
     except Exception:
-        LOG.exception("Unexpected, unknown exception")
+        LOG.exception("Unexpected, unknown exception creating role or policy")
         raise
 
 
