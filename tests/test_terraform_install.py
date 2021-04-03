@@ -6,6 +6,7 @@ Verifies the Terraform configuration by:
     - verifying a "dry run" of the lambda is successful,
     - executing the lambda to verify the libraries are installed.
 """
+from datetime import datetime
 import json
 import os
 from pathlib import Path
@@ -44,6 +45,30 @@ def config_path():
 def localstack_session():
     """Return a LocalStack client session."""
     return localstack_client.session.Session()
+
+
+@pytest.fixture(scope="module")
+def mock_event():
+    """Create an event used as an argument to the Lambda handler."""
+    return {
+        "version": "0",
+        "id": str(uuid.uuid4()),
+        "detail-type": "AWS API Call via CloudTrail",
+        "source": "aws.organizations",
+        "account": "222222222222",
+        "time": datetime.now().isoformat(),
+        "region": "us-east-1",
+        "resources": [],
+        "detail": {
+            "eventName": "CreateAccount",
+            "eventSource": "organizations.amazonaws.com",
+            "responseElements": {
+                "createAccountStatus": {
+                    "id": "xxx-12345678",
+                }
+            },
+        },
+    }
 
 
 @pytest.fixture(scope="module")
@@ -134,38 +159,19 @@ def test_lambda_dry_run(tf_output, localstack_session):
     assert response["StatusCode"] == 204
 
 
-def test_lambda_invocation(tf_output, localstack_session):
+def test_lambda_invocation(tf_output, localstack_session, mock_event):
     """Verify a role was created with the expected policies."""
-    # The following event does not have a valid ID, so the lambda invocation
+    # The event does not have a valid ID, so the lambda invocation
     # will fail.  However, when it fails, an InvocationException (or
     # InvalidInputException when using AWS) should be raised.  This proves
     # the lambda and the AWS powertools library are installed.  (The AWS
     # powertools library is invoked to log exceptions.)
-    event = {
-        "version": "0",
-        "id": str(uuid.uuid4()),
-        "detail-type": "AWS API Call via CloudTrail",
-        "source": "aws.organizations",
-        "account": "222222222222",
-        "time": "2021-02-08T16:08:43Z",
-        "region": "us-east-1",
-        "resources": [],
-        "detail": {
-            "eventName": "CreateAccount",
-            "eventSource": "organizations.amazonaws.com",
-            "responseElements": {
-                "createAccountStatus": {
-                    "id": "xxx-11111111111111111111111111111111",
-                }
-            },
-        },
-    }
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
     response = lambda_client.invoke(
         FunctionName=lambda_module["function_name"],
         InvocationType="RequestResponse",
-        Payload=json.dumps(event),
+        Payload=json.dumps(mock_event),
     )
     assert response["StatusCode"] == 200
 
