@@ -7,6 +7,7 @@ basic as well:
     - test some of the functions invoked by main()
     - test event handler arguments
 """
+from datetime import datetime
 import json
 import os
 import uuid
@@ -14,12 +15,15 @@ import uuid
 import pytest
 from moto import mock_iam
 from moto import mock_sts
+from moto import mock_organizations
 from moto.core import ACCOUNT_ID
 import boto3
 
 import new_account_iam_role as lambda_func
 
 AWS_REGION = os.getenv("AWS_REGION", default="aws-global")
+MOCK_ORG_NAME = "test_account"
+MOCK_ORG_EMAIL = f"{MOCK_ORG_NAME}@mock.org"
 
 
 @pytest.fixture
@@ -42,7 +46,7 @@ def lambda_context():
 
 
 @pytest.fixture(scope="function")
-def aws_credentials(tmpdir):
+def aws_credentials(tmpdir, monkeypatch):
     """Create mocked AWS credentials for moto.
 
     In addition to using the aws_credentials fixture, the test functions
@@ -57,15 +61,15 @@ def aws_credentials(tmpdir):
     ]
     path = tmpdir.join("aws_test_creds")
     path.write("\n".join(aws_creds))
-    os.environ["AWS_SHARED_CREDENTIALS_FILE"] = str(path)
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", str(path))
 
     # Ensure that any existing environment variables are overridden with
     # 'mock' values.
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_PROFILE"] = "testing"  # Not standard, but in use locally.
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("AWS_PROFILE", "testing")  # Not standard, but in use locally.
 
 
 @pytest.fixture(scope="function")
@@ -80,6 +84,41 @@ def sts_client(aws_credentials):
     """Yield a mock STS client that will not affect a real AWS account."""
     with mock_sts():
         yield boto3.client("sts", region_name=AWS_REGION)
+
+
+@pytest.fixture(scope="function")
+def org_client(aws_credentials):
+    """Yield a mock organization that will not affect a real AWS account."""
+    with mock_organizations():
+        yield boto3.client("organizations", region_name=AWS_REGION)
+
+
+@pytest.fixture(scope="function")
+def mock_event(org_client):
+    """Create an event used as an argument to the Lambda handler."""
+    org_client.create_organization(FeatureSet="ALL")
+    account_id = org_client.create_account(
+        AccountName=MOCK_ORG_NAME, Email=MOCK_ORG_EMAIL
+    )["CreateAccountStatus"]["Id"]
+    return {
+        "version": "0",
+        "id": str(uuid.uuid4()),
+        "detail-type": "AWS API Call via CloudTrail",
+        "source": "aws.organizations",
+        "account": "222222222222",
+        "time": datetime.now().isoformat(),
+        "region": "us-east-1",
+        "resources": [],
+        "detail": {
+            "eventName": "CreateAccount",
+            "eventSource": "organizations.amazonaws.com",
+            "responseElements": {
+                "createAccountStatus": {
+                    "id": account_id,
+                }
+            },
+        },
+    }
 
 
 @pytest.fixture(scope="session")
@@ -112,16 +151,6 @@ def valid_role(iam_client, valid_trust_policy):
         iam_resource, "TEST_IAM_ROLE_VALID", valid_trust_policy
     )
     return role
-
-
-@pytest.fixture(scope="function")
-def monkeypatch_get_account_id(monkeypatch):
-    """Mock get_account_id() to return a fake account ID."""
-
-    def mock_get_account_id(event):  # pylint: disable=unused-argument
-        return ACCOUNT_ID
-
-    monkeypatch.setattr(lambda_func, "get_account_id", mock_get_account_id)
 
 
 def test_invalid_trust_policy_json():
@@ -196,7 +225,7 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     assert trust_statement["Effect"] == expected_trust_statement["Effect"]
 
 
-def test_iam_create_role_func_bad_args(valid_trust_policy, caplog):
+def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy, caplog):
     """Invoke iam_create_role() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
@@ -238,17 +267,18 @@ def test_lambda_handler_valid_arguments(
     lambda_context,
     sts_client,
     iam_client,
-    monkeypatch_get_account_id,
+    mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with only valid arguments."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_EVENT_ARGS"
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
-    # The lambda function doesn't return anything, but will generate
-    # an exception for failure.  So returning nothing is considered success.
-    assert not lambda_func.lambda_handler("mocked_event", lambda_context)
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_EVENT_ARGS")
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
+    # The lambda function doesn't return anything, so returning nothing versus
+    # aborting with an exception is considered success.
+    assert not lambda_func.lambda_handler(mock_event, lambda_context)
 
     # Check for role.
     roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
@@ -276,16 +306,17 @@ def test_lambda_handler_missing_role_name(
     lambda_context,
     sts_client,
     iam_client,
-    monkeypatch_get_account_id,
+    mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.unsetenv("ROLE_NAME")
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.delenv("ROLE_NAME", raising=False)
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
-        lambda_func.lambda_handler("mocked_event", lambda_context)
+        lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
         "Environment variable 'ROLE_NAME' must provide the name of the "
         "IAM role to create"
@@ -296,16 +327,17 @@ def test_lambda_handler_missing_permission_policy(
     lambda_context,
     sts_client,
     iam_client,
-    monkeypatch_get_account_id,
+    mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
-    os.unsetenv("PERMISSION_POLICY")
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
+    monkeypatch.delenv("PERMISSION_POLICY", raising=False)
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
-        lambda_func.lambda_handler("mocked_event", lambda_context)
+        lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
         "Environment variable 'PERMISSION_POLICY' must provide the "
         "AWS-managed permission policy"
@@ -316,15 +348,16 @@ def test_lambda_handler_missing_trust_policy_json(
     lambda_context,
     sts_client,
     iam_client,
-    monkeypatch_get_account_id,
-):
+    mock_event,
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.unsetenv("TRUST_POLICY_JSON")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.delenv("TRUST_POLICY_JSON", raising=False)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
-        lambda_func.lambda_handler("mocked_event", lambda_context)
+        lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
         "Environment variable 'TRUST_POLICY_JSON' must be a " "JSON-formatted string"
     ) in str(exc.value)
@@ -334,21 +367,22 @@ def test_lambda_handler_invalid_permission_policy(
     lambda_context,
     sts_client,
     iam_client,
-    monkeypatch_get_account_id,
+    mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with an invalid permission policy.
 
     Note:  A bad role name does not generate an exception when an assumed
     role is provided to obtain credentials.  But a bad permission policy
     will generate an exception.
     """
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY"
-    os.environ["PERMISSION_POLICY"] = "BadReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY")
+    monkeypatch.setenv("PERMISSION_POLICY", "BadReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
-        lambda_func.lambda_handler("mocked_event", lambda_context)
+        lambda_func.lambda_handler(mock_event, lambda_context)
     assert "Unable to attach 'arn:aws:iam::aws:policy/BadReadOnlyAccess'" in str(
         exc.value
     )
