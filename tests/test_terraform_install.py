@@ -12,8 +12,6 @@ import os
 from pathlib import Path
 import uuid
 
-import boto3
-from moto import mock_organizations
 import pytest
 import tftest
 
@@ -25,9 +23,6 @@ AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
 FAKE_ACCOUNT_ID = "123456789012"
 NEW_ROLE_NAME = "TEST_NEW_ACCOUNT_IAM_ROLE"
 MANAGED_POLICY = "ReadOnlyAccess"
-
-MOCK_ORG_NAME = "test_account"
-MOCK_ORG_EMAIL = f"{MOCK_ORG_NAME}@mock.org"
 
 
 @pytest.fixture(scope="module")
@@ -53,25 +48,8 @@ def localstack_session():
 
 
 @pytest.fixture(scope="module")
-def org_localstack_patch(monkeypatch, localstack_session):
-    """Use moto to mock organizations service."""
-    monkeypatch.setattr(boto3, "organizations", localstack_session)
-
-
-@pytest.fixture(scope="module")
-def org_client():
-    """Yield a mock organization that will not affect a real AWS account."""
-    with mock_organizations():
-        yield boto3.client("organizations", region_name=AWS_DEFAULT_REGION)
-
-
-@pytest.fixture(scope="module")
-def mock_event(org_client):
+def mock_event():
     """Create an event used as an argument to the Lambda handler."""
-    org_client.create_organization(FeatureSet="ALL")
-    account_id = org_client.create_account(
-        AccountName=MOCK_ORG_NAME, Email=MOCK_ORG_EMAIL
-    )["CreateAccountStatus"]["Id"]
     return {
         "version": "0",
         "id": str(uuid.uuid4()),
@@ -86,7 +64,7 @@ def mock_event(org_client):
             "eventSource": "organizations.amazonaws.com",
             "responseElements": {
                 "createAccountStatus": {
-                    "id": account_id,
+                    "id": "car-123456789",
                 }
             },
         },
