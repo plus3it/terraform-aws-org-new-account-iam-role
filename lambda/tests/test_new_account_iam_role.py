@@ -46,7 +46,7 @@ def lambda_context():
 
 
 @pytest.fixture(scope="function")
-def aws_credentials(tmpdir):
+def aws_credentials(tmpdir, monkeypatch):
     """Create mocked AWS credentials for moto.
 
     In addition to using the aws_credentials fixture, the test functions
@@ -61,15 +61,15 @@ def aws_credentials(tmpdir):
     ]
     path = tmpdir.join("aws_test_creds")
     path.write("\n".join(aws_creds))
-    os.environ["AWS_SHARED_CREDENTIALS_FILE"] = str(path)
+    monkeypatch.setenv("AWS_SHARED_CREDENTIALS_FILE", str(path))
 
     # Ensure that any existing environment variables are overridden with
     # 'mock' values.
-    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
-    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
-    os.environ["AWS_SECURITY_TOKEN"] = "testing"
-    os.environ["AWS_SESSION_TOKEN"] = "testing"
-    os.environ["AWS_PROFILE"] = "testing"  # Not standard, but in use locally.
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("AWS_PROFILE", "testing")  # Not standard, but in use locally.
 
 
 @pytest.fixture(scope="function")
@@ -225,7 +225,7 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     assert trust_statement["Effect"] == expected_trust_statement["Effect"]
 
 
-def test_iam_create_role_func_bad_args(valid_trust_policy, caplog):
+def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy, caplog):
     """Invoke iam_create_role() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
@@ -269,12 +269,13 @@ def test_lambda_handler_valid_arguments(
     iam_client,
     mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with only valid arguments."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_EVENT_ARGS"
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_EVENT_ARGS")
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     # The lambda function doesn't return anything, so returning nothing versus
     # aborting with an exception is considered success.
     assert not lambda_func.lambda_handler(mock_event, lambda_context)
@@ -307,12 +308,13 @@ def test_lambda_handler_missing_role_name(
     iam_client,
     mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = ""
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.delenv("ROLE_NAME", raising=False)
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
@@ -327,12 +329,13 @@ def test_lambda_handler_missing_permission_policy(
     iam_client,
     mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
-    os.environ["PERMISSION_POLICY"] = ""
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
+    monkeypatch.delenv("PERMISSION_POLICY", raising=False)
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
@@ -346,12 +349,13 @@ def test_lambda_handler_missing_trust_policy_json(
     sts_client,
     iam_client,
     mock_event,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_VALID_ARGS"
-    os.environ["PERMISSION_POLICY"] = "ReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = ""
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
+    monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
+    monkeypatch.delenv("TRUST_POLICY_JSON", raising=False)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
     assert (
@@ -365,17 +369,18 @@ def test_lambda_handler_invalid_permission_policy(
     iam_client,
     mock_event,
     valid_trust_policy,
-):
+    monkeypatch,
+):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with an invalid permission policy.
 
     Note:  A bad role name does not generate an exception when an assumed
     role is provided to obtain credentials.  But a bad permission policy
     will generate an exception.
     """
-    os.environ["ASSUME_ROLE_NAME"] = "TEST_ASSUME_ROLE"
-    os.environ["ROLE_NAME"] = "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY"
-    os.environ["PERMISSION_POLICY"] = "BadReadOnlyAccess"
-    os.environ["TRUST_POLICY_JSON"] = valid_trust_policy
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY")
+    monkeypatch.setenv("PERMISSION_POLICY", "BadReadOnlyAccess")
+    monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
     with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
     assert "Unable to attach 'arn:aws:iam::aws:policy/BadReadOnlyAccess'" in str(
