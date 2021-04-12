@@ -57,7 +57,7 @@ def mock_event():
         "source": "aws.organizations",
         "account": "222222222222",
         "time": datetime.now().isoformat(),
-        "region": "us-east-1",
+        "region": AWS_DEFAULT_REGION,
         "resources": [],
         "detail": {
             "eventName": "CreateAccount",
