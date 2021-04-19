@@ -160,12 +160,12 @@ def test_lambda_dry_run(tf_output, localstack_session):
 
 
 def test_lambda_invocation(tf_output, localstack_session, mock_event):
-    """Verify a role was created with the expected policies."""
-    # The following event does not have a valid ID, so the lambda invocation
-    # will fail.  However, when it fails, an InvocationException (or
-    # InvalidInputException when using AWS) should be raised.  This proves
-    # the lambda and the AWS powertools library are installed.  (The AWS
-    # powertools library is invoked to log exceptions.)
+    """Verify lambda can be successfully invoked; it will not be executed.
+
+    Not all of the AWS SDK calls can be mocked, so the Lambda will not be
+    fully executed.  The Lambda will detect that an integration test is in
+    progress and exit just after testing for non-null environment variables.
+    """
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
     response = lambda_client.invoke(
@@ -176,21 +176,4 @@ def test_lambda_invocation(tf_output, localstack_session, mock_event):
     assert response["StatusCode"] == 200
 
     response_payload = json.loads(response["Payload"].read().decode())
-    assert response_payload
-    assert "errorType" in response_payload
-    # The errorType will differ depending on whether the LocalStack is used
-    # or not.  For LocalStack, the errorType is InvocationException.  For
-    # AWS, the errorType is InvalidInputException.
-    assert response_payload["errorType"] == "InvocationException"
-
-    # The error message should indicate that DescribeCreateAccountStatus()
-    # failed -- the exact reason why this AWS function fails will differ
-    # depends upon whether LocalStack is used or not. For compatibility,
-    # the error message text is shortened to the portion that is compatible
-    # with the AWS stack or LocalStack.
-    assert "errorMessage" in response_payload
-    error_msg = (
-        "An error occurred (UnrecognizedClientException) when calling the "
-        "DescribeCreateAccountStatus operation:"
-    )
-    assert error_msg in response_payload["errorMessage"]
+    assert not response_payload
