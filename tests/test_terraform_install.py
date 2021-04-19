@@ -162,9 +162,10 @@ def test_lambda_dry_run(tf_output, localstack_session):
 def test_lambda_invocation(tf_output, localstack_session, mock_event):
     """Verify lambda can be successfully invoked; it will not be executed.
 
-    Not all of the AWS SDK calls can be mocked, so the Lambda will not be
-    fully executed.  The Lambda will detect that an integration test is in
-    progress and exit just after testing for non-null environment variables.
+    Not all of the lambda's AWS SDK calls can be mocked for an integration
+    test using LocalStack, so the lambda will not be fully executed for this
+    test.  The lambda handler will exit just after testing and logging the
+    environment variables.
     """
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]

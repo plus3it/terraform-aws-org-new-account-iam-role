@@ -312,7 +312,8 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
 
     check_for_null_envvars(role_name, permission_policy, trust_policy_json)
 
-    # If this is an integration test run, exit before invoking any boto3 APIs.
+    # If this handler is invoked for an integration test, exit before invoking
+    # any boto3 APIs.
     if os.environ.get("LOCALSTACK_HOSTNAME"):
         return
 
