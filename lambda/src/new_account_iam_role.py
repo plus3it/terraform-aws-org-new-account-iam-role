@@ -99,17 +99,13 @@ def get_session(assume_role_arn):
 
     LOG.info({"assumed_role": assume_role_arn})
 
-    if os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
-        function_name = generate_lambda_session_name()
-    else:
-        function_name = generate_lambda_session_name(
-            function_name=os.path.basename(__file__), function_version="$LATEST"
-        )
+    function_name = os.environ.get("AWS_LAMBDA_FUNCTION_NAME",
+            os.path.basename(__file__))
 
     return assume_role(
         boto3.Session(),
         assume_role_arn,
-        RoleSessionName=function_name,
+        RoleSessionName=generate_lambda_session_name(function_name),
         DurationSeconds=3600,
     )
 
