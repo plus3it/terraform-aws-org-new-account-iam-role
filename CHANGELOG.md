@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/) and this p
 
 **Commit Delta**: [Change from 0.2.0 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.2.0...0.3.0)
 
-**Released**: 2022.04.22
+**Released**: 2021.04.22
 
 **Summary**:
 
