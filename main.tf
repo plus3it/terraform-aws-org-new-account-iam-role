@@ -4,7 +4,7 @@ terraform {
 }
 
 locals {
-  name = "new_account_iam_role_${random_string.id.result}"
+  name = "new-account-iam-role-${random_string.id.result}"
 }
 
 data "aws_partition" "current" {}
