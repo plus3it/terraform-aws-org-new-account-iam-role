@@ -12,12 +12,12 @@ import json
 import os
 import uuid
 
+import boto3
 import pytest
 from moto import mock_iam
 from moto import mock_sts
 from moto import mock_organizations
 from moto.core import ACCOUNT_ID
-import boto3
 
 import new_account_iam_role as lambda_func
 
@@ -107,7 +107,7 @@ def mock_event(org_client):
         "source": "aws.organizations",
         "account": "222222222222",
         "time": datetime.now().isoformat(),
-        "region": "us-east-1",
+        "region": AWS_REGION,
         "resources": [],
         "detail": {
             "eventName": "CreateAccount",
@@ -272,7 +272,7 @@ def test_lambda_handler_valid_arguments(
     monkeypatch,
 ):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with only valid arguments."""
-    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_EVENT_ARGS")
     monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
@@ -311,7 +311,7 @@ def test_lambda_handler_missing_role_name(
     monkeypatch,
 ):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.delenv("ROLE_NAME", raising=False)
     monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
@@ -332,7 +332,7 @@ def test_lambda_handler_missing_permission_policy(
     monkeypatch,
 ):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
     monkeypatch.delenv("PERMISSION_POLICY", raising=False)
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
@@ -352,7 +352,7 @@ def test_lambda_handler_missing_trust_policy_json(
     monkeypatch,
 ):  # pylint: disable=too-many-arguments
     """Invoke the lambda handler with no trust policy JSON."""
-    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
     monkeypatch.setenv("PERMISSION_POLICY", "ReadOnlyAccess")
     monkeypatch.delenv("TRUST_POLICY_JSON", raising=False)
@@ -377,7 +377,7 @@ def test_lambda_handler_invalid_permission_policy(
     role is provided to obtain credentials.  But a bad permission policy
     will generate an exception.
     """
-    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_ASSUME_ROLE")
+    monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY")
     monkeypatch.setenv("PERMISSION_POLICY", "BadReadOnlyAccess")
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)

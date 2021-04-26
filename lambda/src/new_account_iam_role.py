@@ -48,9 +48,9 @@ def get_new_account_id(event):
     )
     LOG.info({"create_account_status_id": create_account_status_id})
 
-    org = boto3.client("organizations")
+    org_client = boto3.client("organizations")
     while True:
-        account_status = org.describe_create_account_status(
+        account_status = org_client.describe_create_account_status(
             CreateAccountRequestId=create_account_status_id
         )
         state = account_status["CreateAccountStatus"]["State"].upper()
@@ -98,7 +98,6 @@ def get_session(assume_role_arn):
         return boto3.session.Session()
 
     LOG.info({"assumed_role": assume_role_arn})
-
     function_name = os.environ.get(
         "AWS_LAMBDA_FUNCTION_NAME", os.path.basename(__file__)
     )
@@ -108,6 +107,7 @@ def get_session(assume_role_arn):
         assume_role_arn,
         RoleSessionName=generate_lambda_session_name(function_name),
         DurationSeconds=3600,
+        validate=False,
     )
 
 
