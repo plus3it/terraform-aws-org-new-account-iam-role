@@ -37,11 +37,11 @@ localstack/pytest: | guard/program/terraform guard/program/pytest
 	@ echo "[$@]: Completed successfully!"
 
 localstack/up: | guard/program/terraform guard/program/pytest
-	@ echo "[$@] Starting LocalStack"
+	@ echo "[$@] Starting LocalStack container"
 	docker-compose -f tests/docker-compose-localstack.yml up --detach
 
 localstack/down: | guard/program/terraform guard/program/pytest
-	@ echo "[$@] Stopping and removing LocalStack container"
+	@ echo "[$@] Stopping LocalStack container"
 	docker-compose -f tests/docker-compose-localstack.yml down
 
 localstack/clean: | localstack/down

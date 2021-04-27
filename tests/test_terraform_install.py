@@ -20,6 +20,7 @@ import localstack_client.session
 
 AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
+# Good values to use as arguments to the Lambda.
 FAKE_ACCOUNT_ID = "123456789012"
 NEW_ROLE_NAME = "TEST_NEW_ACCOUNT_IAM_ROLE"
 MANAGED_POLICY = "ReadOnlyAccess"
