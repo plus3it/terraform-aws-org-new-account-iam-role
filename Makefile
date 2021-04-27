@@ -24,6 +24,8 @@ python/test:
 .PHONY: terraform/pytest
 terraform/pytest: | guard/program/terraform guard/program/pytest
 	@ echo "[$@] Starting test of Terraform lambda installation"
+	@ echo "[$@] LocalStack must be running; 'make localstack/up' can "
+	@ echo "[$@]    be used to start LocalStack"
 	@ echo "[$@] Terraform 'apply' command is slow ... be patient !!!"
 	pytest tests
 	@ echo "[$@]: Completed successfully!"
