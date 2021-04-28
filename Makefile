@@ -31,8 +31,11 @@ terraform/pytest: | guard/program/terraform guard/program/pytest
 .PHONY: localstack/pytest localstack/up localstack/down localstack/clean
 localstack/pytest: | guard/program/terraform guard/program/pytest
 	@ echo "[$@] Running Terraform tests against LocalStack"
+	@ echo "[$@] LocalStack must be running; 'make localstack/up' can "
+	@ echo "[$@]    be used to start LocalStack"
 	DOCKER_RUN_FLAGS="--network host --rm" \
 		TARDIGRADE_CI_DOCKERFILE=Dockerfile_test \
+		IMAGE_NAME=new-account-iam-role-integration-test:latest \
 		$(MAKE) docker/run target=terraform/pytest
 	@ echo "[$@]: Completed successfully!"
 
