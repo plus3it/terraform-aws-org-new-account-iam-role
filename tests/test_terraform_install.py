@@ -45,7 +45,7 @@ def config_path():
 @pytest.fixture(scope="module")
 def localstack_session():
     """Return a LocalStack client session."""
-    return localstack_client.session.Session()
+    return localstack_client.session.Session(localstack_host="localstack")
 
 
 @pytest.fixture(scope="module")
