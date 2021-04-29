@@ -49,6 +49,7 @@ module "lambda" {
       PERMISSION_POLICY = var.role_permission_policy
       TRUST_POLICY_JSON = var.trust_policy_json
       LOG_LEVEL         = var.log_level
+      LOCALSTACK_HOST   = var.localstack_host
     }
   }
 }

@@ -19,3 +19,8 @@ variable "log_level" {
   description = "Log level of the lambda output, one of: debug, info, warning, error, critical"
   type        = string
 }
+variable "localstack_host" {
+  description = "FOR TESTING ONLY:  Hostname for localstack endpoint"
+  type        = string
+  default     = "localhost"
+}

@@ -18,6 +18,8 @@ import tftest
 import localstack_client.session
 
 
+LOCALSTACK_HOST = os.getenv("LOCALSTACK_HOST", default="localhost")
+
 AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
 # Good values to use as arguments to the Lambda.
@@ -45,7 +47,7 @@ def config_path():
 @pytest.fixture(scope="module")
 def localstack_session():
     """Return a LocalStack client session."""
-    return localstack_client.session.Session(localstack_host="localstack")
+    return localstack_client.session.Session(localstack_host=LOCALSTACK_HOST)
 
 
 @pytest.fixture(scope="module")
@@ -111,6 +113,7 @@ def tf_output(config_path, valid_trust_policy):
         "role_name": NEW_ROLE_NAME,
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
+        "localstack_host": LOCALSTACK_HOST,
     }
 
     try:

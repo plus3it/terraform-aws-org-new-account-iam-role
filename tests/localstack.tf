@@ -8,11 +8,11 @@ provider "aws" {
   s3_force_path_style         = true
 
   endpoints {
-    cloudwatch       = "http://localstack:4566"
-    cloudwatchevents = "http://localstack:4566"
-    cloudwatchlogs   = "http://localstack:4566"
-    lambda           = "http://localstack:4566"
-    iam              = "http://localstack:4566"
-    sts              = "http://localstack:4566"
+    cloudwatch       = "http://${var.localstack_host}:4566"
+    cloudwatchevents = "http://${var.localstack_host}:4566"
+    cloudwatchlogs   = "http://${var.localstack_host}:4566"
+    lambda           = "http://${var.localstack_host}:4566"
+    iam              = "http://${var.localstack_host}:4566"
+    sts              = "http://${var.localstack_host}:4566"
   }
 }
