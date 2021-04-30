@@ -16,3 +16,9 @@ provider "aws" {
     sts              = "http://${var.localstack_host}:4566"
   }
 }
+
+variable "localstack_host" {
+  description = "Hostname for localstack endpoint"
+  type        = string
+  default     = "localhost"
+}
