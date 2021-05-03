@@ -8,11 +8,17 @@ provider "aws" {
   s3_force_path_style         = true
 
   endpoints {
-    cloudwatch       = "http://localhost:4566"
-    cloudwatchevents = "http://localhost:4566"
-    cloudwatchlogs   = "http://localhost:4566"
-    lambda           = "http://localhost:4566"
-    iam              = "http://localhost:4566"
-    sts              = "http://localhost:4566"
+    cloudwatch       = "http://${var.localstack_host}:4566"
+    cloudwatchevents = "http://${var.localstack_host}:4566"
+    cloudwatchlogs   = "http://${var.localstack_host}:4566"
+    lambda           = "http://${var.localstack_host}:4566"
+    iam              = "http://${var.localstack_host}:4566"
+    sts              = "http://${var.localstack_host}:4566"
   }
+}
+
+variable "localstack_host" {
+  description = "Hostname for localstack endpoint"
+  type        = string
+  default     = "localhost"
 }

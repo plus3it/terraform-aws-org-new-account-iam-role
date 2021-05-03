@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 0.4.0
+
+**Commit Delta**: [Change from 0.3.1 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.3.1...0.4.0)
+
+**Released**: 2021.04.29
+
+**Summary**:
+
+*   Revise integration test so it can successfully complete the lambda
+    invocation.
+
 ### 0.3.1
 
 **Commit Delta**: [Change from 0.3.0 release](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/compare/0.3.0...0.3.1)

@@ -18,8 +18,11 @@ import tftest
 import localstack_client.session
 
 
+LOCALSTACK_HOST = os.getenv("LOCALSTACK_HOST", default="localhost")
+
 AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
+# Good values to use as arguments to the Lambda.
 FAKE_ACCOUNT_ID = "123456789012"
 NEW_ROLE_NAME = "TEST_NEW_ACCOUNT_IAM_ROLE"
 MANAGED_POLICY = "ReadOnlyAccess"
@@ -44,7 +47,7 @@ def config_path():
 @pytest.fixture(scope="module")
 def localstack_session():
     """Return a LocalStack client session."""
-    return localstack_client.session.Session()
+    return localstack_client.session.Session(localstack_host=LOCALSTACK_HOST)
 
 
 @pytest.fixture(scope="module")
@@ -57,7 +60,7 @@ def mock_event():
         "source": "aws.organizations",
         "account": "222222222222",
         "time": datetime.now().isoformat(),
-        "region": "us-east-1",
+        "region": AWS_DEFAULT_REGION,
         "resources": [],
         "detail": {
             "eventName": "CreateAccount",
@@ -110,6 +113,7 @@ def tf_output(config_path, valid_trust_policy):
         "role_name": NEW_ROLE_NAME,
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
+        "localstack_host": LOCALSTACK_HOST,
     }
 
     try:
@@ -160,12 +164,13 @@ def test_lambda_dry_run(tf_output, localstack_session):
 
 
 def test_lambda_invocation(tf_output, localstack_session, mock_event):
-    """Verify a role was created with the expected policies."""
-    # The following event does not have a valid ID, so the lambda invocation
-    # will fail.  However, when it fails, an InvocationException (or
-    # InvalidInputException when using AWS) should be raised.  This proves
-    # the lambda and the AWS powertools library are installed.  (The AWS
-    # powertools library is invoked to log exceptions.)
+    """Verify lambda can be successfully invoked; it will not be executed.
+
+    Not all of the lambda's AWS SDK calls can be mocked for an integration
+    test using LocalStack, so the lambda will not be fully executed for this
+    test.  The lambda handler will exit just after testing and logging the
+    environment variables.
+    """
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
     response = lambda_client.invoke(
@@ -176,21 +181,4 @@ def test_lambda_invocation(tf_output, localstack_session, mock_event):
     assert response["StatusCode"] == 200
 
     response_payload = json.loads(response["Payload"].read().decode())
-    assert response_payload
-    assert "errorType" in response_payload
-    # The errorType will differ depending on whether the LocalStack is used
-    # or not.  For LocalStack, the errorType is InvocationException.  For
-    # AWS, the errorType is InvalidInputException.
-    assert response_payload["errorType"] == "InvocationException"
-
-    # The error message should indicate that DescribeCreateAccountStatus()
-    # failed -- the exact reason why this AWS function fails will differ
-    # depends upon whether LocalStack is used or not. For compatibility,
-    # the error message text is shortened to the portion that is compatible
-    # with the AWS stack or LocalStack.
-    assert "errorMessage" in response_payload
-    error_msg = (
-        "An error occurred (UnrecognizedClientException) when calling the "
-        "DescribeCreateAccountStatus operation:"
-    )
-    assert error_msg in response_payload["errorMessage"]
+    assert not response_payload

@@ -48,9 +48,9 @@ def get_new_account_id(event):
     )
     LOG.info({"create_account_status_id": create_account_status_id})
 
-    org = boto3.client("organizations")
+    org_client = boto3.client("organizations")
     while True:
-        account_status = org.describe_create_account_status(
+        account_status = org_client.describe_create_account_status(
             CreateAccountRequestId=create_account_status_id
         )
         state = account_status["CreateAccountStatus"]["State"].upper()
@@ -98,7 +98,6 @@ def get_session(assume_role_arn):
         return boto3.session.Session()
 
     LOG.info({"assumed_role": assume_role_arn})
-
     function_name = os.environ.get(
         "AWS_LAMBDA_FUNCTION_NAME", os.path.basename(__file__)
     )
@@ -108,6 +107,7 @@ def get_session(assume_role_arn):
         assume_role_arn,
         RoleSessionName=generate_lambda_session_name(function_name),
         DurationSeconds=3600,
+        validate=False,
     )
 
 
@@ -115,7 +115,7 @@ def iam_create_role(iam_resource, role_name, trust_policy_json):
     """Return role created with role name and assumed trust policy."""
     LOG.info({"role_name": role_name, "trust_policy": trust_policy_json})
     try:
-        role = iam_resource.create_role(
+        role_resource = iam_resource.create_role(
             RoleName=role_name,
             AssumeRolePolicyDocument=trust_policy_json,
             Description=(
@@ -128,7 +128,7 @@ def iam_create_role(iam_resource, role_name, trust_policy_json):
         botocore.exceptions.ParamValidationError,
         botocore.parsers.ResponseParserError,
     ) as exc:
-        role = None
+        role_resource = None
         LOG.error(
             {
                 "role_name": role_name,
@@ -136,15 +136,15 @@ def iam_create_role(iam_resource, role_name, trust_policy_json):
                 "failure": exc,
             }
         )
-    return role
+    return role_resource
 
 
-def iam_attach_policy(role, role_name, policy_arn):
+def iam_attach_policy(role_resource, role_name, policy_arn):
     """Return True if permission policy can be attached, else False."""
     LOG.info({"role_name": role_name, "aws_managed_policy": policy_arn})
     is_success = True
     try:
-        role.attach_policy(PolicyArn=policy_arn)
+        role_resource.attach_policy(PolicyArn=policy_arn)
     except (
         botocore.exceptions.ClientError,
         botocore.exceptions.ParamValidationError,
@@ -187,51 +187,21 @@ def main(
 
     # Create a role using the role name and assign it an assumed trust policy
     # with the user-supplied JSON.
-    role = iam_create_role(iam_resource, role_name, trust_policy_json)
-    if not role:
+    role_resource = iam_create_role(iam_resource, role_name, trust_policy_json)
+    if not role_resource:
         raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
     # Attach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
-    if not iam_attach_policy(role, role_name, policy_arn):
+    if not iam_attach_policy(role_resource, role_name, policy_arn):
         raise IamRoleInvalidArgumentsError(
             f"Unable to attach '{policy_arn}' to {role_name}."
         )
     return 0
 
 
-@LOG.inject_lambda_context(log_event=True)
-def lambda_handler(event, context):  # pylint: disable=unused-argument
-    """Entry point if script called by AWS Lamdba."""
-    # For the CLI entrypoint (main), argparse will ensure that required
-    # arguments are provided.  The Lambda entrypoint uses environment
-    # variables to supply "arguments" and checks for required arguments
-    # are performed here.
-
-    # Optional:  Used to create assume-role-arn.
-    assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
-
-    # Required:  Used for role-name, e.g., E_READONLY or E_PROVADMIN or
-    # E_PROVREADONLY.
-    role_name = os.environ.get("ROLE_NAME")
-
-    # Required:  role-permission-policy.  AWS-managed permission policy to
-    # attach to the role.
-    permission_policy = os.environ.get("PERMISSION_POLICY")
-
-    # Required:  trust-policy-json.  JSON-formatted string with trust policy.
-    trust_policy_json = os.environ.get("TRUST_POLICY_JSON")
-
-    LOG.info(
-        {
-            "ASSUME_ROLE_NAME": assume_role_name,
-            "ROLE_NAME": role_name,
-            "PERMISSION_POLICY": permission_policy,
-            "TRUST_POLICY_JSON": trust_policy_json,
-        }
-    )
-
-    # Check for missing requirement environment variables.
+def check_for_null_envvars(role_name, permission_policy, trust_policy_json):
+    """Check for missing requirement environment variables."""
     if not role_name:
         msg = (
             "Environment variable 'ROLE_NAME' must provide "
@@ -255,6 +225,40 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
         )
         LOG.error(msg)
         raise IamRoleInvalidArgumentsError(msg)
+
+
+@LOG.inject_lambda_context(log_event=True)
+def lambda_handler(event, context):  # pylint: disable=unused-argument
+    """Entry point if script called by AWS Lamdba."""
+    # Optional:  Used to create assume-role-arn.
+    assume_role_name = os.environ.get("ASSUME_ROLE_NAME")
+
+    # Required:  Used for role-name, e.g., E_READONLY or E_PROVADMIN or
+    # E_PROVREADONLY.
+    role_name = os.environ.get("ROLE_NAME")
+
+    # Required:  role-permission-policy.  AWS-managed permission policy to
+    # attach to the role.
+    permission_policy = os.environ.get("PERMISSION_POLICY")
+
+    # Required:  trust-policy-json.  JSON-formatted string with trust policy.
+    trust_policy_json = os.environ.get("TRUST_POLICY_JSON")
+
+    LOG.info(
+        {
+            "ASSUME_ROLE_NAME": assume_role_name,
+            "ROLE_NAME": role_name,
+            "PERMISSION_POLICY": permission_policy,
+            "TRUST_POLICY_JSON": trust_policy_json,
+        }
+    )
+
+    check_for_null_envvars(role_name, permission_policy, trust_policy_json)
+
+    # If this handler is invoked for an integration test, exit before invoking
+    # any boto3 APIs.
+    if os.environ.get("LOCALSTACK_HOSTNAME"):
+        return
 
     try:
         account_id = get_account_id(event)
