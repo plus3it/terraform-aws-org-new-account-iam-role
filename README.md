@@ -30,32 +30,39 @@ make localstack/clean
 
 | Name | Version |
 |------|---------|
-| terraform | >= 0.12 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 0.12 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| aws | n/a |
-| random | n/a |
+| <a name="provider_aws"></a> [aws](#provider\_aws) | n/a |
+| <a name="provider_random"></a> [random](#provider\_random) | n/a |
+
+## Resources
+
+| Name | Type |
+|------|------|
+| [aws_iam_policy_document.lambda](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
+| [aws_partition.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/partition) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| assume\_role\_name | Name of IAM role to assume the target account (case sensitive) | `string` | n/a | yes |
-| role\_name | Name of the IAM role to create in the target account (case sensitive) | `string` | n/a | yes |
-| role\_permission\_policy | AWS-managed permission policy name to attach to the role (case sensitive) | `string` | n/a | yes |
-| trust\_policy\_json | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
-| log\_level | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"info"` | no |
+| <a name="input_assume_role_name"></a> [assume\_role\_name](#input\_assume\_role\_name) | Name of IAM role to assume the target account (case sensitive) | `string` | n/a | yes |
+| <a name="input_role_name"></a> [role\_name](#input\_role\_name) | Name of the IAM role to create in the target account (case sensitive) | `string` | n/a | yes |
+| <a name="input_role_permission_policy"></a> [role\_permission\_policy](#input\_role\_permission\_policy) | AWS-managed permission policy name to attach to the role (case sensitive) | `string` | n/a | yes |
+| <a name="input_trust_policy_json"></a> [trust\_policy\_json](#input\_trust\_policy\_json) | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
+| <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"info"` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| aws\_cloudwatch\_event\_rule | The cloudwatch event rule object |
-| aws\_cloudwatch\_event\_target | The cloudWatch event target object |
-| aws\_lambda\_permission\_events | The lambda permission object for cloudwatch event triggers |
-| lambda | The lambda module object |
+| <a name="output_aws_cloudwatch_event_rule"></a> [aws\_cloudwatch\_event\_rule](#output\_aws\_cloudwatch\_event\_rule) | The cloudwatch event rule object |
+| <a name="output_aws_cloudwatch_event_target"></a> [aws\_cloudwatch\_event\_target](#output\_aws\_cloudwatch\_event\_target) | The cloudWatch event target object |
+| <a name="output_aws_lambda_permission_events"></a> [aws\_lambda\_permission\_events](#output\_aws\_lambda\_permission\_events) | The lambda permission object for cloudwatch event triggers |
+| <a name="output_lambda"></a> [lambda](#output\_lambda) | The lambda module object |
 
 <!-- END TFDOCS -->
