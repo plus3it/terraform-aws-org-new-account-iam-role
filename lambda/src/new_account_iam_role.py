@@ -8,7 +8,7 @@ import sys
 import time
 
 from aws_lambda_powertools import Logger
-from aws_assume_role_lib import assume_role, generate_lambda_session_name
+from aws_assume_role_lib import assume_role
 import boto3
 import botocore
 
@@ -105,7 +105,7 @@ def get_session(assume_role_arn):
     return assume_role(
         boto3.Session(),
         assume_role_arn,
-        RoleSessionName=generate_lambda_session_name(function_name),
+        RoleSessionName=function_name,
         DurationSeconds=3600,
         validate=False,
     )
