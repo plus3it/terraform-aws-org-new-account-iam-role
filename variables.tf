@@ -19,3 +19,9 @@ variable "log_level" {
   description = "Log level of the lambda output, one of: debug, info, warning, error, critical"
   type        = string
 }
+
+variable "tags" {
+  default     = {}
+  description = "Tags that are passed to resources"
+  type        = map(string)
+}

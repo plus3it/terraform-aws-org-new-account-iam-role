@@ -55,6 +55,7 @@ make localstack/clean
 | <a name="input_role_permission_policy"></a> [role\_permission\_policy](#input\_role\_permission\_policy) | AWS-managed permission policy name to attach to the role (case sensitive) | `string` | n/a | yes |
 | <a name="input_trust_policy_json"></a> [trust\_policy\_json](#input\_trust\_policy\_json) | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"info"` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | Tags that are passed to resources | `map(string)` | `{}` | no |
 
 ## Outputs
 
