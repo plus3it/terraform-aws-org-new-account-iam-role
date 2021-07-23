@@ -23,15 +23,15 @@ jobs:
       name: Project Syntax Verification
       script: make docker/run target=lint
     - stage: test
-      name: Run unit and integration tests against a mock AWS stack
+      name: Run unit tests
+      script: make docker/run target=pytest/lambda/tests
+    - stage: test
+      name: Run integration tests against a mock AWS stack
       install:
         - make docker-compose/install
-      script: 
-        - make docker/run target=pytest/lambda/tests
         - make mockstack/up
-        - make mockstack/pytest/lambda
-      after_script:
-        - make mockstack/clean
+      script: make mockstack/pytest/lambda
+      after_script: make mockstack/clean
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
       before_script:
