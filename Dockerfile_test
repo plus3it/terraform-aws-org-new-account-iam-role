@@ -1,5 +1,6 @@
-FROM plus3it/tardigrade-ci:0.14.0
+FROM plus3it/tardigrade-ci:0.16.1
 
 COPY ./tests/requirements_test.txt /tests/requirements_test.txt
+COPY ./requirements_common.txt /requirements_common.txt
 
 RUN python -m pip install --no-cache-dir -r /tests/requirements_test.txt

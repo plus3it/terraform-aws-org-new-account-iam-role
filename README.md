@@ -12,17 +12,24 @@ to create the IAM role.
 
 ## Testing
 
-To set up and run tests against the Terraform configuration:
+To set up and run tests:
 
 ```
-# Start up LocalStack, a mock AWS stack:
-make localstack/up
+# Ensure the dependencies are installed on your system.
+make python/deps
+make pytest/deps
 
-# Run the tests:
-make terraform/pytest
+# Start up a mock AWS stack:
+make mockstack/up
 
-# Shut down LocalStack and clean up docker images:
-make localstack/clean
+# Run unit tests:
+make docker/run target=pytest/lambda/tests
+
+# Run tests against the Terraform configuration:
+make mockstack/pytest/lambda
+
+# Shut down the mock AWS stack and clean up the docker image:
+make mockstack/clean
 ```
 
 <!-- BEGIN TFDOCS -->
