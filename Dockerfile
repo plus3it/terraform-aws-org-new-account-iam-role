@@ -1,4 +1,4 @@
-FROM plus3it/tardigrade-ci:0.17.1
+FROM plus3it/tardigrade-ci:0.18.0
 
 COPY ./lambda/src/requirements.txt /lambda/src/requirements.txt
 COPY ./lambda/tests/requirements_dev.txt /lambda/tests/requirements_dev.txt
