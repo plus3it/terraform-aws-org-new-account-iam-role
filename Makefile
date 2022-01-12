@@ -17,7 +17,7 @@ python/deps:
 	@ python -m pip install -r lambda/src/requirements.txt
 
 .PHONY: mockstack/pytest/lambda
-mockstack/pytest/lambda: | guard/program/terraform guard/program/pytest
+mockstack/pytest/lambda:
 	@ echo "[$@] Running Terraform tests against LocalStack"
 	DOCKER_RUN_FLAGS="--network tests_default --rm -e LOCALSTACK_HOST=localstack" \
 		TARDIGRADE_CI_DOCKERFILE=Dockerfile_test \
