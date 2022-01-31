@@ -1,2 +1,2 @@
-moto==3.0.0
+moto==3.0.2
 -r ../../requirements_common.txt
