@@ -1,8 +1,3 @@
-
-terraform {
-  required_version = ">= 0.12"
-}
-
 locals {
   name = "new_account_iam_role_${random_string.id.result}"
 }
@@ -32,26 +27,35 @@ data "aws_iam_policy_document" "lambda" {
 }
 
 module "lambda" {
-  source = "git::https://github.com/plus3it/terraform-aws-lambda.git?ref=v1.3.0"
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v4.0.2"
 
   function_name = local.name
-  description   = "Create new IAM Account Role"
-  handler       = "new_account_iam_role.lambda_handler"
-  policy        = data.aws_iam_policy_document.lambda
-  runtime       = "python3.8"
-  source_path   = "${path.module}/lambda/src"
-  tags          = var.tags
-  timeout       = 300
 
-  environment = {
-    variables = {
-      ASSUME_ROLE_NAME  = var.assume_role_name
-      ROLE_NAME         = var.role_name
-      PERMISSION_POLICY = var.role_permission_policy
-      TRUST_POLICY_JSON = var.trust_policy_json
-      LOG_LEVEL         = var.log_level
-    }
+  description = "Create new IAM Account Role"
+  handler     = "new_account_iam_role.lambda_handler"
+  runtime     = "python3.8"
+  timeout     = 300
+  tags        = var.tags
+
+  attach_policy_json = true
+  policy_json        = data.aws_iam_policy_document.lambda.json
+
+  recreate_missing_package = false
+
+  environment_variables = {
+    ASSUME_ROLE_NAME  = var.assume_role_name
+    ROLE_NAME         = var.role_name
+    PERMISSION_POLICY = var.role_permission_policy
+    TRUST_POLICY_JSON = var.trust_policy_json
+    LOG_LEVEL         = var.log_level
   }
+
+  source_path = [
+    {
+      path             = "${path.module}/lambda/src",
+      pip_requirements = true,
+    },
+  ]
 }
 
 resource "random_string" "id" {
@@ -81,12 +85,12 @@ resource "aws_cloudwatch_event_rule" "this" {
 
 resource "aws_cloudwatch_event_target" "this" {
   rule = aws_cloudwatch_event_rule.this.name
-  arn  = module.lambda.function_arn
+  arn  = module.lambda.lambda_function_arn
 }
 
 resource "aws_lambda_permission" "events" {
   action        = "lambda:InvokeFunction"
-  function_name = module.lambda.function_name
+  function_name = module.lambda.lambda_function_name
   principal     = "events.amazonaws.com"
   source_arn    = aws_cloudwatch_event_rule.this.arn
 }
