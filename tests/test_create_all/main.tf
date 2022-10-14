@@ -1,4 +1,4 @@
-module "test_org_new_account_iam_role" {
+module "test_create_all" {
   source = "../.."
 
   assume_role_name       = "FOO"
