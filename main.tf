@@ -27,7 +27,7 @@ data "aws_iam_policy_document" "lambda" {
 }
 
 module "lambda" {
-  source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v4.0.2"
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v4.1.1"
 
   function_name = local.name
 
@@ -40,7 +40,10 @@ module "lambda" {
   attach_policy_json = true
   policy_json        = data.aws_iam_policy_document.lambda.json
 
-  recreate_missing_package = false
+  artifacts_dir            = try(var.lambda.artifacts_dir, "builds")
+  create_package           = try(var.lambda.create_package, true)
+  local_existing_package   = try(var.lambda.local_existing_package, null)
+  recreate_missing_package = try(var.lambda.recreate_missing_package, false)
 
   environment_variables = {
     ASSUME_ROLE_NAME  = var.assume_role_name
