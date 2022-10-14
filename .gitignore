@@ -22,3 +22,7 @@ tests/go.*
 # python cache
 __pycache__
 .python-version
+.pytest_cache
+
+# lambda builds
+builds/

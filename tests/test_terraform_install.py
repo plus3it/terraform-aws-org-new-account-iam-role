@@ -140,7 +140,7 @@ def test_outputs(tf_output):
     prefix = "new_account_iam_role"
 
     lambda_module = tf_output["lambda"]
-    assert lambda_module["function_name"].startswith(prefix)
+    assert lambda_module["lambda_function_name"].startswith(prefix)
 
     event_rule_output = tf_output["aws_cloudwatch_event_rule"]
     assert event_rule_output["name"].startswith(prefix)
@@ -157,7 +157,7 @@ def test_lambda_dry_run(tf_output, localstack_session):
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
     response = lambda_client.invoke(
-        FunctionName=lambda_module["function_name"],
+        FunctionName=lambda_module["lambda_function_name"],
         InvocationType="DryRun",
     )
     assert response["StatusCode"] == 204
@@ -174,7 +174,7 @@ def test_lambda_invocation(tf_output, localstack_session, mock_event):
     lambda_client = localstack_session.client("lambda", region_name=AWS_DEFAULT_REGION)
     lambda_module = tf_output["lambda"]
     response = lambda_client.invoke(
-        FunctionName=lambda_module["function_name"],
+        FunctionName=lambda_module["lambda_function_name"],
         InvocationType="RequestResponse",
         Payload=json.dumps(mock_event),
     )
