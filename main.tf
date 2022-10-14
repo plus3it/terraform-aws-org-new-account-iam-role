@@ -40,6 +40,8 @@ module "lambda" {
   attach_policy_json = true
   policy_json        = data.aws_iam_policy_document.lambda.json
 
+  source_path = "${path.module}/lambda/src"
+
   artifacts_dir            = try(var.lambda.artifacts_dir, "builds")
   create_package           = try(var.lambda.create_package, true)
   local_existing_package   = try(var.lambda.local_existing_package, null)
@@ -52,13 +54,6 @@ module "lambda" {
     TRUST_POLICY_JSON = var.trust_policy_json
     LOG_LEVEL         = var.log_level
   }
-
-  source_path = [
-    {
-      path             = "${path.module}/lambda/src",
-      pip_requirements = true,
-    },
-  ]
 }
 
 resource "random_string" "id" {
