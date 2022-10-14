@@ -1,11 +1,11 @@
 FROM plus3it/tardigrade-ci:0.23.2
 
-COPY ./lambda/src/requirements.txt /lambda/src/requirements.txt
-COPY ./lambda/tests/requirements_dev.txt /lambda/tests/requirements_dev.txt
-COPY ./tests/requirements_test.txt /tests/requirements_test.txt
-COPY ./requirements_common.txt /requirements_common.txt
+COPY ./lambda/src/requirements.txt /app/requirements.txt
+COPY ./requirements/requirements_dev.txt /app/requirements_dev.txt
+COPY ./requirements/requirements_test.txt /app/requirements_test.txt
+COPY ./requirements/requirements_common.txt /app/requirements_common.txt
 
 RUN python -m pip install --no-cache-dir \
-    -r /lambda/src/requirements.txt \
-    -r /lambda/tests/requirements_dev.txt \
-    -r /tests/requirements_test.txt
+    -r /app/requirements.txt \
+    -r /app/requirements_dev.txt \
+    -r /app/requirements_test.txt
