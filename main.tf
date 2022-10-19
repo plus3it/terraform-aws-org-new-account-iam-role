@@ -44,6 +44,7 @@ module "lambda" {
 
   artifacts_dir            = try(var.lambda.artifacts_dir, "builds")
   create_package           = try(var.lambda.create_package, true)
+  ignore_source_code_hash  = try(var.lambda.ignore_source_code_hash, true)
   local_existing_package   = try(var.lambda.local_existing_package, null)
   recreate_missing_package = try(var.lambda.recreate_missing_package, false)
 
