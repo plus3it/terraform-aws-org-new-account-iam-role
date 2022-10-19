@@ -47,6 +47,7 @@ module "lambda" {
   ignore_source_code_hash  = try(var.lambda.ignore_source_code_hash, true)
   local_existing_package   = try(var.lambda.local_existing_package, null)
   recreate_missing_package = try(var.lambda.recreate_missing_package, false)
+  ephemeral_storage_size   = try(var.lambda.ephemeral_storage_size, null)
 
   environment_variables = {
     ASSUME_ROLE_NAME  = var.assume_role_name
