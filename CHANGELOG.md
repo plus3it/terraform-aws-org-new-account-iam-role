@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 1.0.3
+
+**Commit Delta**: [Change from 1.0.2 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.0.2...1.0.3)
+
+**Released**: 2022.10.20
+
+**Summary**:
+
+*   Ignores terragrunt source manifest by default.
+*   Supports customizing the source_path patterns, using var.lambda.source_patterns.
+
 ### 1.0.2
 
 **Commit Delta**: [Change from 1.0.1 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.0.1...1.0.2)

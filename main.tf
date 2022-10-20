@@ -40,7 +40,13 @@ module "lambda" {
   attach_policy_json = true
   policy_json        = data.aws_iam_policy_document.lambda.json
 
-  source_path = "${path.module}/lambda/src"
+  source_path = [
+    {
+      path             = "${path.module}/lambda/src"
+      pip_requirements = true
+      patterns         = try(var.lambda.source_patterns, ["!\\.terragrunt-source-manifest"])
+    }
+  ]
 
   artifacts_dir            = try(var.lambda.artifacts_dir, "builds")
   create_package           = try(var.lambda.create_package, true)
