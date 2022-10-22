@@ -17,7 +17,7 @@ import pytest
 from moto import mock_iam
 from moto import mock_sts
 from moto import mock_organizations
-from moto.core import ACCOUNT_ID
+from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 import new_account_iam_role as lambda_func
 

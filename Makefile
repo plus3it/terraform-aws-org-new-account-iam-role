@@ -8,8 +8,8 @@ include $(shell test -f .tardigrade-ci || curl -sSL -o .tardigrade-ci "https://r
 pytest/deps:
 	@ echo "[@] Installing dependencies used for unit and integration tests"
 	@ python -m pip install \
-		-r lambda/tests/requirements_dev.txt \
-		-r tests/requirements_test.txt
+		-r requirements/requirements_dev.txt \
+		-r requirements/requirements_test.txt
 
 .PHONY: python/deps
 python/deps:
@@ -24,4 +24,3 @@ mockstack/pytest/lambda:
 		IMAGE_NAME=new-account-iam-role-integration-test:latest \
 		$(MAKE) docker/run target=terraform/pytest
 	@ echo "[$@]: Completed successfully!"
-
