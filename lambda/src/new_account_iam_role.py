@@ -5,7 +5,6 @@ import datetime
 import json
 import os
 import sys
-import time
 
 from aws_lambda_powertools import Logger
 from aws_assume_role_lib import assume_role, generate_lambda_session_name
@@ -35,32 +34,9 @@ class IamRoleInvalidArgumentsError(Exception):
 # Classes and functions specific to the Lambda event handler itself.
 
 
-class AccountCreationFailedError(Exception):
-    """Account creation failed."""
-
-
 def get_new_account_id(event):
     """Return account id for new account events."""
-    create_account_status_id = (
-        event["detail"]
-        .get("responseElements", {})
-        .get("createAccountStatus", {})["id"]  # fmt: no
-    )
-    LOG.info({"create_account_status_id": create_account_status_id})
-
-    org_client = boto3.client("organizations")
-    while True:
-        account_status = org_client.describe_create_account_status(
-            CreateAccountRequestId=create_account_status_id
-        )
-        state = account_status["CreateAccountStatus"]["State"].upper()
-        if state == "SUCCEEDED":
-            return account_status["CreateAccountStatus"]["AccountId"]
-        if state == "FAILED":
-            LOG.error({"create_account_status_failure": account_status})
-            raise AccountCreationFailedError
-        LOG.info({"create_account_status_state": state})
-        time.sleep(5)
+    return event["detail"]["serviceEventDetails"]["createAccountStatus"]["accountId"]
 
 
 def get_invite_account_id(event):
@@ -72,15 +48,10 @@ def get_account_id(event):
     """Return account id for supported events."""
     event_name = event["detail"]["eventName"]
     get_account_id_strategy = {
-        "CreateAccount": get_new_account_id,
-        "CreateGovCloudAccount": get_new_account_id,
+        "CreateAccountResult": get_new_account_id,
         "InviteAccountToOrganization": get_invite_account_id,
     }
-    try:
-        account_id = get_account_id_strategy[event_name](event)
-    except (botocore.exceptions.ClientError, AccountCreationFailedError) as err:
-        raise AccountCreationFailedError(err) from err
-    return account_id
+    return get_account_id_strategy[event_name](event)
 
 
 def get_partition():
@@ -263,9 +234,6 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     try:
         account_id = get_account_id(event)
         partition = get_partition()
-    except AccountCreationFailedError as account_err:
-        LOG.error({"failure": account_err})
-        raise
     except Exception:
         LOG.exception("Unexpected, unknown exception in account logic")
         raise

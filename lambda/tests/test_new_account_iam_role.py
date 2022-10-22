@@ -97,24 +97,29 @@ def org_client(aws_credentials):
 def mock_event(org_client):
     """Create an event used as an argument to the Lambda handler."""
     org_client.create_organization(FeatureSet="ALL")
-    account_id = org_client.create_account(
-        AccountName=MOCK_ORG_NAME, Email=MOCK_ORG_EMAIL
-    )["CreateAccountStatus"]["Id"]
+    car_id = org_client.create_account(AccountName=MOCK_ORG_NAME, Email=MOCK_ORG_EMAIL)[
+        "CreateAccountStatus"
+    ]["Id"]
+    create_account_status = org_client.describe_create_account_status(
+        CreateAccountRequestId=car_id
+    )
     return {
         "version": "0",
         "id": str(uuid.uuid4()),
-        "detail-type": "AWS API Call via CloudTrail",
+        "detail-type": "AWS Service Event via CloudTrail",
         "source": "aws.organizations",
-        "account": "222222222222",
+        "account": ACCOUNT_ID,
         "time": datetime.now().isoformat(),
         "region": AWS_REGION,
         "resources": [],
         "detail": {
-            "eventName": "CreateAccount",
+            "eventName": "CreateAccountResult",
             "eventSource": "organizations.amazonaws.com",
-            "responseElements": {
+            "serviceEventDetails": {
                 "createAccountStatus": {
-                    "id": account_id,
+                    "accountId": create_account_status["CreateAccountStatus"][
+                        "AccountId"
+                    ]
                 }
             },
         },
