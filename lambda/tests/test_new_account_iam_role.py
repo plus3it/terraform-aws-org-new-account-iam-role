@@ -280,19 +280,34 @@ def test_lambda_handler_valid_arguments(
     # aborting with an exception is considered success.
     assert not lambda_func.lambda_handler(mock_event, lambda_context)
 
+    # Assume role into account where lambda created this role
+    new_account_id = lambda_func.get_account_id(mock_event)
+    sts_response = sts_client.assume_role(
+        RoleArn=f"arn:aws:iam::{new_account_id}:role/TEST_VALID_ASSUME_ROLE",
+        RoleSessionName="test-session-name",
+        ExternalId="test-external-id",
+    )
+    new_iam_client = boto3.client(
+        "iam",
+        aws_access_key_id=sts_response["Credentials"]["AccessKeyId"],
+        aws_secret_access_key=sts_response["Credentials"]["SecretAccessKey"],
+        aws_session_token=sts_response["Credentials"]["SessionToken"],
+        region_name=AWS_REGION,
+    )
+
     # Check for role.
-    roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
+    roles = [role["RoleName"] for role in new_iam_client.list_roles()["Roles"]]
     assert "TEST_IAM_ROLE_VALID_EVENT_ARGS" in roles
 
     # Check for attached policy.
-    policies = iam_client.list_attached_role_policies(
+    policies = new_iam_client.list_attached_role_policies(
         RoleName="TEST_IAM_ROLE_VALID_EVENT_ARGS"
     )
     assert "AttachedPolicies" in policies
     assert "ReadOnlyAccess" in [x["PolicyName"] for x in policies["AttachedPolicies"]]
 
     # Check for assume role trust policy.
-    role_info = iam_client.get_role(RoleName="TEST_IAM_ROLE_VALID_EVENT_ARGS")
+    role_info = new_iam_client.get_role(RoleName="TEST_IAM_ROLE_VALID_EVENT_ARGS")
     assert "AssumeRolePolicyDocument" in role_info["Role"]
 
     expected_trust_statement = json.loads(valid_trust_policy)["Statement"][0]
