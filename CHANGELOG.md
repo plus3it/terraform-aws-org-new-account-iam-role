@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 1.1.1
+
+**Commit Delta**: [Change from 1.1.0 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.1.0...1.1.1)
+
+**Released**: 2022.10.24
+
+**Summary**:
+
+*   Removes unused `org:DescribeCreateAccountStatus` permission from IAM policy
+
 ### 1.1.0
 
 **Commit Delta**: [Change from 1.0.3 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.0.3...1.1.0)
