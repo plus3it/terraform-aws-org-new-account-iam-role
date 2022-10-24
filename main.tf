@@ -7,16 +7,6 @@ data "aws_partition" "current" {}
 data "aws_iam_policy_document" "lambda" {
   statement {
     actions = [
-      "organizations:DescribeCreateAccountStatus"
-    ]
-
-    resources = [
-      "*",
-    ]
-  }
-
-  statement {
-    actions = [
       "sts:AssumeRole"
     ]
 
