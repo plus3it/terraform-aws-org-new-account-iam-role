@@ -1,5 +1,5 @@
 locals {
-  name = "new_account_iam_role_${random_string.id.result}"
+  name = "new-account-iam-role-${random_string.id.result}"
 }
 
 data "aws_partition" "current" {}
@@ -29,9 +29,9 @@ data "aws_iam_policy_document" "lambda" {
 module "lambda" {
   source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v4.2.0"
 
-  function_name = local.name
+  function_name = "${local.name}-${var.role_name}"
 
-  description = "Create new IAM Account Role"
+  description = "Create new account IAM Role - ${var.role_name}"
   handler     = "new_account_iam_role.lambda_handler"
   runtime     = "python3.8"
   timeout     = 300
@@ -69,34 +69,57 @@ resource "random_string" "id" {
   special = false
 }
 
-resource "aws_cloudwatch_event_rule" "this" {
-  name          = local.name
-  description   = "Managed by Terraform"
-  event_pattern = <<-PATTERN
-    {
-      "source": ["aws.organizations"],
-      "detail-type": ["AWS API Call via CloudTrail"],
-      "detail": {
-        "eventSource": ["organizations.amazonaws.com"],
-        "eventName": [
-            "InviteAccountToOrganization",
-            "CreateAccount",
-            "CreateGovCloudAccount"
-        ]
+locals {
+  event_types = {
+    CreateAccountResult = jsonencode(
+      {
+        "source" : ["aws.organizations"],
+        "detail-type" : ["AWS Service Event via CloudTrail"]
+        "detail" : {
+          "eventSource" : ["organizations.amazonaws.com"],
+          "eventName" : ["CreateAccountResult"]
+          "serviceEventDetails" : {
+            "createAccountStatus" : {
+              "state" : ["SUCCEEDED"]
+            }
+          }
+        }
       }
-    }
-    PATTERN
+    )
+    InviteAccountToOrganization = jsonencode(
+      {
+        "source" : ["aws.organizations"],
+        "detail-type" : ["AWS API Call via CloudTrail"]
+        "detail" : {
+          "eventSource" : ["organizations.amazonaws.com"],
+          "eventName" : ["InviteAccountToOrganization"]
+        }
+      }
+    )
+  }
+}
+
+resource "aws_cloudwatch_event_rule" "this" {
+  for_each = var.event_types
+
+  name          = "${local.name}-${each.value}"
+  description   = "Managed by Terraform"
+  event_pattern = local.event_types[each.value]
   tags          = var.tags
 }
 
 resource "aws_cloudwatch_event_target" "this" {
-  rule = aws_cloudwatch_event_rule.this.name
+  for_each = aws_cloudwatch_event_rule.this
+
+  rule = each.value.name
   arn  = module.lambda.lambda_function_arn
 }
 
 resource "aws_lambda_permission" "events" {
+  for_each = aws_cloudwatch_event_rule.this
+
   action        = "lambda:InvokeFunction"
   function_name = module.lambda.lambda_function_name
   principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.this.arn
+  source_arn    = each.value.arn
 }

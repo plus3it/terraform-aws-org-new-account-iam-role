@@ -66,6 +66,7 @@ make mockstack/clean
 | <a name="input_role_name"></a> [role\_name](#input\_role\_name) | Name of the IAM role to create in the target account (case sensitive) | `string` | n/a | yes |
 | <a name="input_role_permission_policy"></a> [role\_permission\_policy](#input\_role\_permission\_policy) | AWS-managed permission policy name to attach to the role (case sensitive) | `string` | n/a | yes |
 | <a name="input_trust_policy_json"></a> [trust\_policy\_json](#input\_trust\_policy\_json) | JSON-formatted string containing the role trust policy | `string` | n/a | yes |
+| <a name="input_event_types"></a> [event\_types](#input\_event\_types) | Event types that will trigger this lambda | `set(string)` | <pre>[<br>  "CreateAccountResult",<br>  "InviteAccountToOrganization"<br>]</pre> | no |
 | <a name="input_lambda"></a> [lambda](#input\_lambda) | Map of any additional arguments for the upstream lambda module. See <https://github.com/terraform-aws-modules/terraform-aws-lambda> | `any` | `{}` | no |
 | <a name="input_log_level"></a> [log\_level](#input\_log\_level) | Log level of the lambda output, one of: debug, info, warning, error, critical | `string` | `"info"` | no |
 | <a name="input_tags"></a> [tags](#input\_tags) | Tags that are passed to resources | `map(string)` | `{}` | no |

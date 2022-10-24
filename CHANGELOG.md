@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 1.1.0
+
+**Commit Delta**: [Change from 1.0.3 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.0.3...1.1.0)
+
+**Released**: 2022.10.24
+
+**Summary**:
+
+*   Improves event pattern to eliminate loop/wait logic in lambda function.
+*   Separates the CreateAccountResult and InviteAccountToOrganization patterns into two event rules.
+
 ### 1.0.3
 
 **Commit Delta**: [Change from 1.0.2 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.0.2...1.0.3)
