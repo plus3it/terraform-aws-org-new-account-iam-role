@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### 1.2.0
+
+**Commit Delta**: [Change from 1.1.1 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.1.1...1.2.0)
+
+**Released**: 2022.10.25
+
+**Summary**:
+
+*   Simplifies exception handling with a global handler that logs all exceptions
+
 ### 1.1.1
 
 **Commit Delta**: [Change from 1.1.0 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.1.0...1.1.1)
