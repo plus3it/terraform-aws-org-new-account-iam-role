@@ -13,6 +13,7 @@ import os
 import uuid
 
 import boto3
+import botocore.exceptions
 import pytest
 from moto import mock_iam
 from moto import mock_sts
@@ -160,7 +161,7 @@ def valid_role(iam_client, valid_trust_policy):
 
 def test_invalid_trust_policy_json():
     """Test an invalid JSON string for trust_policy_json argument."""
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(json.decoder.JSONDecodeError) as exc:
         # JSON string is missing a bracket in the 'Statement' field.
         lambda_func.main(
             role_name="TEST_IAM_ROLE_INVALID_JSON",
@@ -172,23 +173,23 @@ def test_invalid_trust_policy_json():
                 f'"Effect": "Allow"}}'
             ),
         )
-    assert "'trust-policy-json' contains badly formed JSON" in str(exc.value)
+    assert "Expecting ',' delimiter: line 1 column 144 (char 143)" in str(exc.value)
 
 
 def test_main_func_bad_role_arg(aws_credentials, valid_trust_policy):
     """Invoke main() with a bad role name."""
-    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         lambda_func.main(
             role_name="TEST$MAIN#BADROLE",
             role_permission_policy="ReadOnlyAccess",
             trust_policy_json=valid_trust_policy,
         )
-    assert "Unable to create 'TEST$MAIN#BADROLE' role" in str(exc.value)
+    assert "The specified value for roleName is invalid" in str(exc.value)
 
 
-def test_main_func_bad_permission_policy_arg(aws_credentials, valid_trust_policy):
+def test_main_func_bad_permission_policy_arg(iam_client, valid_trust_policy):
     """Test use of a bad permission policy argument for main()."""
-    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+    with pytest.raises(KeyError) as exc:
         lambda_func.main(
             role_name="TEST_IAM_ROLE_INVALID_PERMISSION_POLICY",
             role_permission_policy="UnknownNotGoodPolicy",
@@ -201,12 +202,11 @@ def test_main_func_bad_permission_policy_arg(aws_credentials, valid_trust_policy
 
 def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     """Test use of valid arguments for main()."""
-    return_code = lambda_func.main(
+    lambda_func.main(
         role_name="TEST_IAM_ROLE_VALID_ARGS",
         role_permission_policy="ReadOnlyAccess",
         trust_policy_json=valid_trust_policy,
     )
-    assert return_code == 0
 
     # Check for role.
     roles = [role["RoleName"] for role in iam_client.list_roles()["Roles"]]
@@ -230,7 +230,7 @@ def test_main_func_valid_arguments(iam_client, valid_trust_policy):
     assert trust_statement["Effect"] == expected_trust_statement["Effect"]
 
 
-def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy, caplog):
+def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy):
     """Invoke iam_create_role() using JSON with a bad field name.
 
     This could tested through a call to main() versus calling
@@ -246,14 +246,12 @@ def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy, capl
     #    iam_resource, "TEST_IAM_ROLE_BAD_POLICY", bad_trust_policy)
 
     # But a bad role name will fail with a mocked call.
-    role = lambda_func.iam_create_role(
-        iam_resource, "TEST#TRUST&ROLE", valid_trust_policy
-    )
-    assert not role
-    assert "Unable to create role" in caplog.text
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
+        lambda_func.iam_create_role(iam_resource, "TEST#TRUST&ROLE", valid_trust_policy)
+        assert "The specified value for roleName is invalid" in exc
 
 
-def test_iam_attach_policy(valid_role, caplog):
+def test_iam_attach_policy(valid_role):
     """Invoke iam_attach_policy() with bad arguments.
 
     This could be tested through a call to main() versus calling
@@ -261,11 +259,9 @@ def test_iam_attach_policy(valid_role, caplog):
     to look for an exception rather than a return value.
     """
     policy_arn = "arn:aws:iam::aws:policy/NotAwsManagedPolicy"
-    is_success = lambda_func.iam_attach_policy(
-        valid_role, "TEST_IAM_ROLE_BAD_POLICY_NAME", policy_arn
-    )
-    assert not is_success
-    assert "Unable to attach policy" in caplog.text
+    with pytest.raises(KeyError) as exc:
+        lambda_func.iam_attach_policy(valid_role, policy_arn)
+        assert "KeyError" in exc
 
 
 def test_lambda_handler_valid_arguments(
@@ -401,8 +397,6 @@ def test_lambda_handler_invalid_permission_policy(
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY")
     monkeypatch.setenv("PERMISSION_POLICY", "BadReadOnlyAccess")
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
-    with pytest.raises(lambda_func.IamRoleInvalidArgumentsError) as exc:
+    with pytest.raises(KeyError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
-    assert "Unable to attach 'arn:aws:iam::aws:policy/BadReadOnlyAccess'" in str(
-        exc.value
-    )
+        assert KeyError in exc

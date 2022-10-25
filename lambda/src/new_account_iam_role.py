@@ -9,7 +9,6 @@ import sys
 from aws_lambda_powertools import Logger
 from aws_assume_role_lib import assume_role, generate_lambda_session_name
 import boto3
-import botocore
 
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
 
@@ -63,75 +62,54 @@ def get_partition():
 # ------------------------------------------------------------------------
 
 
+def exception_hook(exc_type, exc_value, exc_traceback):
+    """Log all exceptions with hook for sys.excepthook."""
+    LOG.exception(
+        "%s: %s",
+        exc_type.__name__,
+        exc_value,
+        exc_info=(exc_type, exc_value, exc_traceback),
+    )
+
+
 def get_session(assume_role_arn):
     """Return boto3 session established using a role arn or AWS profile."""
     if not assume_role_arn:
         return boto3.session.Session()
 
-    LOG.info({"assumed_role": assume_role_arn})
     function_name = os.environ.get(
         "AWS_LAMBDA_FUNCTION_NAME", os.path.basename(__file__)
     )
 
+    LOG.info(
+        {
+            "comment": f"Assuming role ARN ({assume_role_arn})",
+            "assume_role_arn": assume_role_arn,
+        }
+    )
     return assume_role(
         boto3.Session(),
         assume_role_arn,
         RoleSessionName=generate_lambda_session_name(function_name),
-        DurationSeconds=3600,
         validate=False,
     )
 
 
 def iam_create_role(iam_resource, role_name, trust_policy_json):
-    """Return role created with role name and assumed trust policy."""
-    LOG.info({"role_name": role_name, "trust_policy": trust_policy_json})
-    try:
-        role_resource = iam_resource.create_role(
-            RoleName=role_name,
-            AssumeRolePolicyDocument=trust_policy_json,
-            Description=(
-                f"This role was updated {datetime.datetime.now()} by "
-                f"{os.path.basename(__file__)}"
-            ),
-        )
-    except (
-        botocore.exceptions.ClientError,
-        botocore.exceptions.ParamValidationError,
-        botocore.parsers.ResponseParserError,
-    ) as exc:
-        role_resource = None
-        LOG.error(
-            {
-                "role_name": role_name,
-                "failure_msg": "Unable to create role",
-                "failure": exc,
-            }
-        )
-    return role_resource
+    """Return role created with role name and trust policy."""
+    return iam_resource.create_role(
+        RoleName=role_name,
+        AssumeRolePolicyDocument=trust_policy_json,
+        Description=(
+            f"This role was updated {datetime.datetime.now()} by "
+            f"{os.path.basename(__file__)}"
+        ),
+    )
 
 
-def iam_attach_policy(role_resource, role_name, policy_arn):
-    """Return True if permission policy can be attached, else False."""
-    LOG.info({"role_name": role_name, "aws_managed_policy": policy_arn})
-    is_success = True
-    try:
-        role_resource.attach_policy(PolicyArn=policy_arn)
-    except (
-        botocore.exceptions.ClientError,
-        botocore.exceptions.ParamValidationError,
-        KeyError,
-    ) as exc:
-        # Note:  KeyError is seen when the policy ARN has a invalid policy
-        # name, e.g. isn't a known policy name.
-        LOG.error(
-            {
-                "role_name": role_name,
-                "failure_msg": "Unable to attach policy",
-                "failure": exc,
-            }
-        )
-        is_success = False
-    return is_success
+def iam_attach_policy(role_resource, policy_arn):
+    """Attach managed policy to role."""
+    role_resource.attach_policy(PolicyArn=policy_arn)
 
 
 def main(
@@ -144,31 +122,39 @@ def main(
     """Create or update a IAM role with a trusted relationship."""
     # Validate trust policy contains properly formatted JSON.  This is
     # not a validation against a schema, so the JSON could still be bad.
-    try:
-        json.loads(trust_policy_json)
-    except json.decoder.JSONDecodeError as exc:
-        # pylint: disable=raise-missing-from
-        raise IamRoleInvalidArgumentsError(
-            f"'trust-policy-json' contains badly formed JSON: {exc}"
-        )
+    json.loads(trust_policy_json)
 
     # Create a session using the role arn or AWS profile.
-    assume_role_session = get_session(assume_role_arn)
-    iam_resource = assume_role_session.resource("iam")
+    session = get_session(assume_role_arn)
+    iam_resource = session.resource("iam")
 
     # Create a role using the role name and assign it an assumed trust policy
     # with the user-supplied JSON.
+    LOG.info(
+        {
+            "comment": f"Creating IAM role ({role_name})",
+            "role_name": role_name,
+            "trust_policy": trust_policy_json,
+        }
+    )
     role_resource = iam_create_role(iam_resource, role_name, trust_policy_json)
-    if not role_resource:
-        raise IamRoleInvalidArgumentsError(f"Unable to create '{role_name}' role.")
 
     # Attach the permission policy(s) associated with the role.
     policy_arn = f"arn:{partition}:iam::aws:policy/{role_permission_policy}"
-    if not iam_attach_policy(role_resource, role_name, policy_arn):
-        raise IamRoleInvalidArgumentsError(
-            f"Unable to attach '{policy_arn}' to {role_name}."
-        )
-    return 0
+    LOG.info(
+        {
+            "comment": "Attaching managed IAM policy ({role_permission_policy})",
+            "role_name": role_name,
+            "policy_arn": policy_arn,
+        }
+    )
+    iam_attach_policy(role_resource, policy_arn)
+
+    LOG.info(
+        "Successfully created IAM role (%s) and attached policy (%s)",
+        role_name,
+        role_permission_policy,
+    )
 
 
 def check_for_null_envvars(role_name, permission_policy, trust_policy_json):
@@ -231,29 +217,21 @@ def lambda_handler(event, context):  # pylint: disable=unused-argument
     if os.environ.get("LOCALSTACK_HOSTNAME"):
         return
 
-    try:
-        account_id = get_account_id(event)
-        partition = get_partition()
-    except Exception:
-        LOG.exception("Unexpected, unknown exception in account logic")
-        raise
+    account_id = get_account_id(event)
+    partition = get_partition()
 
     role_arn = f"arn:{partition}:iam::{account_id}:role/{assume_role_name}"
-    try:
-        main(
-            role_name=role_name,
-            role_permission_policy=permission_policy,
-            trust_policy_json=trust_policy_json,
-            assume_role_arn=role_arn,
-            partition=partition,
-        )
-    except IamRoleInvalidArgumentsError as err:
-        LOG.error({"failure": err})
-        raise
-    except Exception:
-        LOG.exception("Unexpected, unknown exception creating role or policy")
-        raise
+    main(
+        role_name=role_name,
+        role_permission_policy=permission_policy,
+        trust_policy_json=trust_policy_json,
+        assume_role_arn=role_arn,
+        partition=partition,
+    )
 
+
+# Configure exception handler
+sys.excepthook = exception_hook
 
 if __name__ == "__main__":
 
