@@ -44,6 +44,10 @@ module "lambda" {
   local_existing_package   = try(var.lambda.local_existing_package, null)
   recreate_missing_package = try(var.lambda.recreate_missing_package, false)
   ephemeral_storage_size   = try(var.lambda.ephemeral_storage_size, null)
+  s3_bucket                = var.lambda.s3_bucket
+  s3_existing_package      = var.lambda.s3_existing_package
+  s3_prefix                = var.lambda.s3_prefix
+  store_on_s3              = var.lambda.store_on_s3
 
   environment_variables = {
     ASSUME_ROLE_NAME  = var.assume_role_name
