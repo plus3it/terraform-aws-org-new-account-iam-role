@@ -38,12 +38,12 @@ module "lambda" {
     }
   ]
 
-  artifacts_dir            = try(var.lambda.artifacts_dir, "builds")
-  create_package           = try(var.lambda.create_package, true)
-  ignore_source_code_hash  = try(var.lambda.ignore_source_code_hash, true)
-  local_existing_package   = try(var.lambda.local_existing_package, null)
-  recreate_missing_package = try(var.lambda.recreate_missing_package, false)
-  ephemeral_storage_size   = try(var.lambda.ephemeral_storage_size, null)
+  artifacts_dir            = var.lambda.artifacts_dir
+  create_package           = var.lambda.create_package
+  ignore_source_code_hash  = var.lambda.ignore_source_code_hash
+  local_existing_package   = var.lambda.local_existing_package
+  recreate_missing_package = var.lambda.recreate_missing_package
+  ephemeral_storage_size   = var.lambda.ephemeral_storage_size
   s3_bucket                = var.lambda.s3_bucket
   s3_existing_package      = var.lambda.s3_existing_package
   s3_prefix                = var.lambda.s3_prefix
