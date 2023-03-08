@@ -34,8 +34,19 @@ variable "event_types" {
 
 variable "lambda" {
   description = "Map of any additional arguments for the upstream lambda module. See <https://github.com/terraform-aws-modules/terraform-aws-lambda>"
-  type        = any
-  default     = {}
+  type = object({
+    artifacts_dir            = optional(string, "builds")
+    create_package           = optional(bool, true)
+    ephemeral_storage_size   = optional(number)
+    ignore_source_code_hash  = optional(bool, true)
+    local_existing_package   = optional(string)
+    recreate_missing_package = optional(bool, false)
+    s3_bucket                = optional(string)
+    s3_existing_package      = optional(map(string))
+    s3_prefix                = optional(string)
+    store_on_s3              = optional(bool, false)
+  })
+  default = {}
 }
 
 variable "log_level" {
