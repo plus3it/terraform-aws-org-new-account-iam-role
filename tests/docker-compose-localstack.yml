@@ -3,7 +3,7 @@ version: "3.3"
 services:
   localstack:
     container_name: localstack
-    image: localstack/localstack
+    image: "localstack/localstack:${LOCALSTACK_VERSION:-latest}"
     ports:
       - "4566:4566"
       - "4571:4571"
