@@ -31,7 +31,9 @@ jobs:
         - make docker-compose/install
         - make mockstack/up
       script: make mockstack/pytest/lambda
-      after_script: make mockstack/clean
+      after_script:
+        - docker-compose -f ./tests/docker-compose-localstack.yml logs
+        - make mockstack/clean
     - stage: deploy
       if: branch = master AND type = push AND repo = plus3it/terraform-aws-org-new-account-iam-role
       before_script:

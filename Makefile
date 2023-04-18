@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 export PYTHONPATH := $(PYTHONPATH):./lambda/src
-export TERRAFORM_PYTEST_DIR := tests
+export TERRAFORM_PYTEST_DIR := $(PWD)/tests
 
 include $(shell test -f .tardigrade-ci || curl -sSL -o .tardigrade-ci "https://raw.githubusercontent.com/plus3it/tardigrade-ci/master/bootstrap/Makefile.bootstrap"; echo .tardigrade-ci)
 
@@ -19,7 +19,7 @@ python/deps:
 .PHONY: mockstack/pytest/lambda
 mockstack/pytest/lambda:
 	@ echo "[$@] Running Terraform tests against LocalStack"
-	DOCKER_RUN_FLAGS="--network tests_default --rm -e LOCALSTACK_HOST=localstack" \
+	DOCKER_RUN_FLAGS="--network terraform_pytest_default --rm -e LOCALSTACK_HOST=localstack" \
 		TARDIGRADE_CI_DOCKERFILE=Dockerfile_test \
 		IMAGE_NAME=new-account-iam-role-integration-test:latest \
 		$(MAKE) docker/run target=terraform/pytest
