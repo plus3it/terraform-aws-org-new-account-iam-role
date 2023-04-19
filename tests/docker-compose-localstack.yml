@@ -1,14 +1,18 @@
-version: "3.3"
+version: "3.8"
+
+networks:
+  default:
+    name: terraform_pytest_default
 
 services:
   localstack:
     container_name: localstack
-    image: localstack/localstack
+    image: "localstack/localstack:${LOCALSTACK_VERSION:-latest}"
     ports:
       - "4566:4566"
       - "4571:4571"
     environment:
-      - SERVICES=cloudwatch,events,lambda,iam,sts
       - MAIN_CONTAINER_NAME=localstack
+      - LAMBDA_DOCKER_NETWORK=terraform_pytest_default
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"

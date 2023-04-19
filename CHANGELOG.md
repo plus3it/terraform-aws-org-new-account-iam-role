@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/) and this project adheres to [Semantic Versioning](http://semver.org/).
 
+### [2.0.1](https://github.com/plus3it/terraform-aws-org-new-account-iam-role/releases/tag/2.0.1)
+
+**Released**: 2023.04.18
+
+**Summary**:
+
+* Simplifies event rule patterns, relying only on details from cloudtrail event
+
 ### 1.2.0
 
 **Commit Delta**: [Change from 1.1.1 release](https://github.com/plus3it/terraform-aws-org-new-account-trust-policy/compare/1.1.1...1.2.0)
