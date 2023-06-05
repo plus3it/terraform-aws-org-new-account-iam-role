@@ -1,2 +1,2 @@
-moto==4.1.10
+moto==4.1.11
 -r ./requirements_common.txt
