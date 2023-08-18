@@ -1,4 +1,4 @@
-FROM plus3it/tardigrade-ci:0.24.6
+FROM plus3it/tardigrade-ci:0.24.10
 
 COPY ./requirements/requirements_test.txt /app/requirements_test.txt
 COPY ./requirements/requirements_common.txt /app/requirements_common.txt
