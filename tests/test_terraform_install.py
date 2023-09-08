@@ -18,7 +18,7 @@ import tftest
 import localstack_client.session
 
 
-LOCALSTACK_HOST = os.getenv("LOCALSTACK_HOST", default="localhost")
+LOCALSTACK_HOST = os.getenv("LOCALSTACK_HOST", default="localstack")
 
 AWS_DEFAULT_REGION = os.getenv("AWS_REGION", default="us-east-1")
 
