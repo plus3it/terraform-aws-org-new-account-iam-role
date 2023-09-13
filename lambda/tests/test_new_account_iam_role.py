@@ -189,7 +189,7 @@ def test_main_func_bad_role_arg(aws_credentials, valid_trust_policy):
 
 def test_main_func_bad_permission_policy_arg(iam_client, valid_trust_policy):
     """Test use of a bad permission policy argument for main()."""
-    with pytest.raises(KeyError) as exc:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         lambda_func.main(
             role_name="TEST_IAM_ROLE_INVALID_PERMISSION_POLICY",
             role_permission_policy="UnknownNotGoodPolicy",
@@ -251,7 +251,7 @@ def test_iam_create_role_func_bad_args(aws_credentials, valid_trust_policy):
         assert "The specified value for roleName is invalid" in exc
 
 
-def test_iam_attach_policy(valid_role):
+def test_iam_attach_bad_policy(valid_role):
     """Invoke iam_attach_policy() with bad arguments.
 
     This could be tested through a call to main() versus calling
@@ -259,7 +259,7 @@ def test_iam_attach_policy(valid_role):
     to look for an exception rather than a return value.
     """
     policy_arn = "arn:aws:iam::aws:policy/NotAwsManagedPolicy"
-    with pytest.raises(KeyError) as exc:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         lambda_func.iam_attach_policy(valid_role, policy_arn)
         assert "KeyError" in exc
 
@@ -397,6 +397,6 @@ def test_lambda_handler_invalid_permission_policy(
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_NAME_BAD_PERM_POLICY")
     monkeypatch.setenv("PERMISSION_POLICY", "BadReadOnlyAccess")
     monkeypatch.setenv("TRUST_POLICY_JSON", valid_trust_policy)
-    with pytest.raises(KeyError) as exc:
+    with pytest.raises(botocore.exceptions.ClientError) as exc:
         lambda_func.lambda_handler(mock_event, lambda_context)
         assert KeyError in exc
