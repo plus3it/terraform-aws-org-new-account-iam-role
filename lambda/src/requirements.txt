@@ -1,3 +1,3 @@
 aws-lambda-powertools==2.26.0
-boto3==1.28.73
+boto3==1.28.78
 aws-assume-role-lib==2.10.0
