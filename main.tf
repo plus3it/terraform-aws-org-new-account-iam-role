@@ -23,7 +23,6 @@ module "lambda" {
 
   description = "Create new account IAM Role - ${var.role_name}"
   handler     = "new_account_iam_role.lambda_handler"
-  runtime     = "python3.8"
   timeout     = 300
   tags        = var.tags
 
@@ -40,10 +39,11 @@ module "lambda" {
 
   artifacts_dir            = var.lambda.artifacts_dir
   create_package           = var.lambda.create_package
+  ephemeral_storage_size   = var.lambda.ephemeral_storage_size
   ignore_source_code_hash  = var.lambda.ignore_source_code_hash
   local_existing_package   = var.lambda.local_existing_package
   recreate_missing_package = var.lambda.recreate_missing_package
-  ephemeral_storage_size   = var.lambda.ephemeral_storage_size
+  runtime                  = var.lambda.runtime
   s3_bucket                = var.lambda.s3_bucket
   s3_existing_package      = var.lambda.s3_existing_package
   s3_prefix                = var.lambda.s3_prefix
