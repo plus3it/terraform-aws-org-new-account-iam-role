@@ -17,7 +17,7 @@ data "aws_iam_policy_document" "lambda" {
 }
 
 module "lambda" {
-  source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v7.2.3"
+  source = "git::https://github.com/terraform-aws-modules/terraform-aws-lambda.git?ref=v7.2.4"
 
   function_name = "${local.name}-${var.role_name}"
 
