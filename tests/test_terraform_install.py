@@ -6,6 +6,7 @@ Verifies the Terraform configuration by:
     - verifying a "dry run" of the lambda is successful,
     - executing the lambda to verify the libraries are installed.
 """
+
 from datetime import datetime
 import json
 import os
@@ -114,17 +115,14 @@ def tf_output(config_path, valid_trust_policy):
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
         "localstack_host": LOCALSTACK_HOST,
+        "lambda": {
+            "runtime": "python3.12",
+        },
     }
 
-    try:
-        tf_test.apply(tf_vars=tf_vars)
-        yield tf_test.output(json_format=True)
-    except tftest.TerraformTestError as exc:
-        pytest.exit(
-            msg=f"Catastropic error running Terraform 'apply':  {exc}", returncode=1
-        )
-    finally:
-        tf_test.destroy(tf_vars=tf_vars)
+    tf_test.apply(tf_vars=tf_vars)
+    yield tf_test.output(json_format=True)
+    tf_test.destroy(tf_vars=tf_vars)
 
 
 def test_outputs(tf_output):
