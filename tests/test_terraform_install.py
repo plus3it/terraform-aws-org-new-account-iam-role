@@ -6,6 +6,7 @@ Verifies the Terraform configuration by:
     - verifying a "dry run" of the lambda is successful,
     - executing the lambda to verify the libraries are installed.
 """
+
 from datetime import datetime
 import json
 import os
