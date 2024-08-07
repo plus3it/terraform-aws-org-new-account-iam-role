@@ -115,6 +115,9 @@ def tf_output(config_path, valid_trust_policy):
         "role_permission_policy": MANAGED_POLICY,
         "trust_policy_json": valid_trust_policy,
         "localstack_host": LOCALSTACK_HOST,
+        "lambda": {
+            "runtime": "python3.12",
+        },
     }
 
     tf_test.apply(tf_vars=tf_vars)
