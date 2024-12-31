@@ -272,7 +272,7 @@ def test_lambda_handler_valid_arguments(
     mock_event,
     valid_trust_policy,
     monkeypatch,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments,too-many-positional-arguments
     """Invoke the lambda handler with only valid arguments."""
     monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_EVENT_ARGS")
@@ -326,7 +326,7 @@ def test_lambda_handler_missing_role_name(
     mock_event,
     valid_trust_policy,
     monkeypatch,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments,too-many-positional-arguments
     """Invoke the lambda handler with no trust policy JSON."""
     monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.delenv("ROLE_NAME", raising=False)
@@ -347,7 +347,7 @@ def test_lambda_handler_missing_permission_policy(
     mock_event,
     valid_trust_policy,
     monkeypatch,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments,too-many-positional-arguments
     """Invoke the lambda handler with no trust policy JSON."""
     monkeypatch.setenv("ASSUME_ROLE_NAME", "TEST_VALID_ASSUME_ROLE")
     monkeypatch.setenv("ROLE_NAME", "TEST_IAM_ROLE_VALID_ARGS")
@@ -387,7 +387,7 @@ def test_lambda_handler_invalid_permission_policy(
     mock_event,
     valid_trust_policy,
     monkeypatch,
-):  # pylint: disable=too-many-arguments
+):  # pylint: disable=too-many-arguments,too-many-positional-arguments
     """Invoke the lambda handler with an invalid permission policy.
 
     Note:  A bad role name does not generate an exception when an assumed
