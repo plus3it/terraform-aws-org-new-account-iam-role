@@ -16,9 +16,7 @@ import uuid
 import boto3
 import botocore.exceptions
 import pytest
-from moto import mock_iam
-from moto import mock_sts
-from moto import mock_organizations
+from moto import mock_aws
 from moto.core import DEFAULT_ACCOUNT_ID as ACCOUNT_ID
 
 import new_account_iam_role as lambda_func
@@ -53,7 +51,7 @@ def aws_credentials(tmpdir, monkeypatch):
 
     In addition to using the aws_credentials fixture, the test functions
     must also use a mocked client.  For this test file, that would be the
-    test fixture "iam_client", which invokes "mock_iam()" or "sts_client".
+    test fixture "iam_client", which invokes "mock_aws()" or "sts_client".
     """
     # Create a temporary AWS credentials file for calls to boto.Session().
     aws_creds = [
@@ -77,21 +75,21 @@ def aws_credentials(tmpdir, monkeypatch):
 @pytest.fixture(scope="function")
 def iam_client(aws_credentials):
     """Yield a mock IAM client that will not affect a real AWS account."""
-    with mock_iam():
+    with mock_aws(config={"iam": {"load_aws_managed_policies": True}}):
         yield boto3.client("iam", region_name=AWS_REGION)
 
 
 @pytest.fixture(scope="function")
 def sts_client(aws_credentials):
     """Yield a mock STS client that will not affect a real AWS account."""
-    with mock_sts():
+    with mock_aws(config={"iam": {"load_aws_managed_policies": True}}):
         yield boto3.client("sts", region_name=AWS_REGION)
 
 
 @pytest.fixture(scope="function")
 def org_client(aws_credentials):
     """Yield a mock organization that will not affect a real AWS account."""
-    with mock_organizations():
+    with mock_aws(config={"iam": {"load_aws_managed_policies": True}}):
         yield boto3.client("organizations", region_name=AWS_REGION)
 
 
