@@ -41,7 +41,7 @@ variable "lambda" {
     ignore_source_code_hash  = optional(bool, true)
     local_existing_package   = optional(string)
     recreate_missing_package = optional(bool, false)
-    runtime                  = optional(string, "python3.11")
+    runtime                  = optional(string, "python3.12")
     s3_bucket                = optional(string)
     s3_existing_package      = optional(map(string))
     s3_prefix                = optional(string)
