@@ -8,4 +8,4 @@ concurrency:
 
 jobs:
   lint:
-    uses: plus3it/actions-workflows/.github/workflows/lint.yml@93a9326e07945e5441d0fadef735563290edd729
+    uses: plus3it/actions-workflows/.github/workflows/lint.yml@269d875599c92395f7fa99cab43edc1820798e61

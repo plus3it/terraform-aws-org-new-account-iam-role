@@ -8,13 +8,13 @@ concurrency:
 
 jobs:
   test:
-    uses: plus3it/actions-workflows/.github/workflows/test.yml@93a9326e07945e5441d0fadef735563290edd729
+    uses: plus3it/actions-workflows/.github/workflows/test.yml@269d875599c92395f7fa99cab43edc1820798e61
 
   unit-test:
     runs-on: ubuntu-latest
     steps:
       - name: Clone this git repository
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
 
       - name: Run python lambda unit tests
         run: make docker/run target=pytest/lambda/tests
