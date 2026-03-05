@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Create cross-account IAM role and update trust."""
+
 from argparse import ArgumentParser, RawDescriptionHelpFormatter
 import datetime
 import json
