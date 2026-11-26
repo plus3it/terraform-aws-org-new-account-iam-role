@@ -1,3 +1,3 @@
-tftest==1.8.8
+tftest==2.0.0
 localstack-client==2.12
 -r ./requirements_common.txt
